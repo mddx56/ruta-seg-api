@@ -1,0 +1,15 @@
+meta {
+  name: Posiciones con info de vehículo (admin)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/positions/device-details?imei=123456789012345&date=2024-06-01
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

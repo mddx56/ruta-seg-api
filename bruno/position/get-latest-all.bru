@@ -1,0 +1,15 @@
+meta {
+  name: Última posición de todos los dispositivos
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/positions/latest
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

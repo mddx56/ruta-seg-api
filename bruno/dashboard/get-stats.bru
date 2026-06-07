@@ -1,0 +1,15 @@
+meta {
+  name: Estadísticas del dashboard (admin)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/dashboard/stats
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

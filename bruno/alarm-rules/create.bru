@@ -1,0 +1,19 @@
+meta {
+  name: Crear regla de alarma
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/alarm_rules
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "alarm_type_id": "ALARM_TYPE_ID_AQUI",
+    "device_imei": "123456789012345",
+    "threshold": 120
+  }
+}

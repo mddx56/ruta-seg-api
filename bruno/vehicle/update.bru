@@ -1,0 +1,23 @@
+meta {
+  name: Actualizar vehículo
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/vehicles/VEHICLE_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "id": "VEHICLE_ID_AQUI",
+    "placa": "XYZ999",
+    "color": "Azul"
+  }
+}

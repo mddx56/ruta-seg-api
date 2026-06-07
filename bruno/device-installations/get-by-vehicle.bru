@@ -1,0 +1,15 @@
+meta {
+  name: Instalaciones por vehículo
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/device-installations/vehicle?vehicle_id=VEHICLE_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

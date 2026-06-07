@@ -1,0 +1,20 @@
+[
+  {
+    "name": "admin",
+    "username": "admin1234",
+    "telp_number": "123",
+    "email": "admin1234@gmail.com",
+    "password": "11223344",
+    "role": "admin",
+    "is_verified": true
+  },
+  {
+    "name": "jwp",
+    "username": "jwp",
+    "telp_number": "123",
+    "email": "jwp@gmail.com",
+    "password": "11223344",
+    "role": "user",
+    "is_verified": true
+  }
+]

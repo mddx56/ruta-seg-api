@@ -1,0 +1,15 @@
+meta {
+  name: Obtener dispositivo por IMEI
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/devices/123456789012345
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

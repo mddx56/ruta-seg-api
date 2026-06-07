@@ -1,0 +1,15 @@
+meta {
+  name: Ruta del dispositivo
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/positions/route?imei=123456789012345&start=2024-06-01&end=2024-06-02
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

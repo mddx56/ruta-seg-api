@@ -1,0 +1,22 @@
+meta {
+  name: Remover dispositivo de grupo
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/group/remove
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "group_id": "GROUP_ID_AQUI",
+    "device_imei": "123456789012345"
+  }
+}

@@ -1,0 +1,21 @@
+meta {
+  name: Signup (usuario normal)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{prd}}/api/auth/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Juan Perez",
+    "username": "juanperez1",
+    "telp_number": "70000001",
+    "email": "juan1@example.com",
+    "password": "1234"
+  }
+}

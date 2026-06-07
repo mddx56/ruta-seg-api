@@ -1,0 +1,17 @@
+meta {
+  name: Crear marca
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/makes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Toyota"
+  }
+}

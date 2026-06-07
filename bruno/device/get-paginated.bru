@@ -1,0 +1,11 @@
+meta {
+  name: Listar dispositivos paginado
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/devices/list?page=1&limit=10
+  body: none
+  auth: none
+}

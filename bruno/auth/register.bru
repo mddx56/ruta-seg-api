@@ -1,0 +1,21 @@
+meta {
+  name: Register (admin)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{dev}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Administrador",
+    "username": "admin",
+    "telp_number": "70000000",
+    "email": "admin@example.com",
+    "password": "admin1234"
+  }
+}

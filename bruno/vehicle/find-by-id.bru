@@ -1,0 +1,15 @@
+meta {
+  name: Obtener vehículo por ID
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/vehicles/VEHICLE_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

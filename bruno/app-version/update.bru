@@ -1,0 +1,23 @@
+meta {
+  name: Actualizar versión de app (admin)
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/app-version/APP_VERSION_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "version_name": "1.0.1",
+    "version_code": 2,
+    "is_force_update": true
+  }
+}

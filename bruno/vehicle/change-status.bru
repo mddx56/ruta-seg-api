@@ -1,0 +1,15 @@
+meta {
+  name: Cambiar estado del vehículo
+  type: http
+  seq: 7
+}
+
+patch {
+  url: {{baseUrl}}/api/vehicles/VEHICLE_ID_AQUI/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

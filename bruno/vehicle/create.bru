@@ -1,0 +1,26 @@
+meta {
+  name: Crear vehículo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/vehicles
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "placa": "ABC123",
+    "description": "Vehículo de prueba",
+    "year": 2022,
+    "color": "Rojo",
+    "user_id": "USER_ID_AQUI",
+    "model_id": "MODEL_ID_AQUI"
+  }
+}

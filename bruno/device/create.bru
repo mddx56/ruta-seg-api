@@ -1,0 +1,25 @@
+meta {
+  name: Crear dispositivo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/devices
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "imei": "123456789012345",
+    "model": "TK103",
+    "protocol": "gt06",
+    "sim_phone_number": "70000001",
+    "sim_provider": "Tigo"
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Crear instalación
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/device-installations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "device_imei": "123456789012345",
+    "vehicle_id": "VEHICLE_ID_AQUI",
+    "install_reason": "Instalación inicial"
+  }
+}

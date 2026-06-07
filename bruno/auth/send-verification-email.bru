@@ -1,0 +1,17 @@
+meta {
+  name: Enviar email de verificación
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{dev}}/api/auth/send-verification-email
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "juan@example.com"
+  }
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Instalación rápida
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/device-installations/quick
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "device_imei": "123456789012345",
+    "vehicle_id": "VEHICLE_ID_AQUI"
+  }
+}

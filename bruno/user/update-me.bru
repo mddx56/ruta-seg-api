@@ -1,0 +1,22 @@
+meta {
+  name: Actualizar mi perfil
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/api/user/me
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Mi Nombre Actualizado",
+    "telp_number": "70000099"
+  }
+}

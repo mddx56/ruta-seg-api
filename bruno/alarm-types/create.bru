@@ -1,0 +1,18 @@
+meta {
+  name: Crear tipo de alarma
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/alarm_types
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Velocidad excedida",
+    "description": "Alarma cuando el vehículo supera la velocidad máxima"
+  }
+}

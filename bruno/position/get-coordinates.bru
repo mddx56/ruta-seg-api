@@ -1,0 +1,15 @@
+meta {
+  name: Coordenadas por IMEI y fecha
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/positions/coordinates?imei=123456789012345&date=2024-06-01
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

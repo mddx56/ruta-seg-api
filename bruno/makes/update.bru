@@ -1,0 +1,17 @@
+meta {
+  name: Actualizar marca
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/makes/MAKE_ID_AQUI
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Toyota Updated"
+  }
+}

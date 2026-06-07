@@ -1,0 +1,15 @@
+meta {
+  name: Cambiar estado de marca
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/makes/MAKE_ID_AQUI/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

@@ -1,0 +1,17 @@
+meta {
+  name: Actualizar tipo de vehículo
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/vehicle-types/VEHICLE_TYPE_ID_AQUI
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "SUV"
+  }
+}

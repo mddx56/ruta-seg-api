@@ -1,0 +1,22 @@
+meta {
+  name: Crear posición (GPS)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/positions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "imei": "123456789012345",
+    "latitude": -16.5,
+    "longitude": -68.15,
+    "speed": 60,
+    "course": 180,
+    "altitude": 3600
+  }
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Crear grupo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/group
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Grupo Norte",
+    "description": "Vehículos zona norte",
+    "user_id": "USER_ID_AQUI"
+  }
+}

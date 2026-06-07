@@ -1,0 +1,15 @@
+meta {
+  name: Cambiar estado del dispositivo
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/devices/123456789012345/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

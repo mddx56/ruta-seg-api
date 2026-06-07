@@ -1,0 +1,10 @@
+*.env
+storage/
+assets/
+volumes/
+bin/
+.idea/
+.vscode/
+tmp/
+*.exe
+tmp_build/

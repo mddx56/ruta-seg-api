@@ -1,0 +1,21 @@
+meta {
+  name: Desinstalar dispositivo
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/api/device-installations/INSTALLATION_ID_AQUI/uninstall
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "removal_reason": "Mantenimiento"
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Todas las instalaciones
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/device-installations
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

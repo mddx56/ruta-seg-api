@@ -1,0 +1,37 @@
+meta {
+  name: Google OAuth - Callback Manual
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{dev}}/api/auth/google/callback
+  body: none
+  auth: none
+}
+
+params:query {
+  code: PEGAR_AQUI_EL_CODE_DE_GOOGLE
+  state: PEGAR_AQUI_EL_STATE_DE_LA_COOKIE
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("token", res.body.data.access_token);
+    bru.setVar("refreshToken", res.body.data.refresh_token);
+  }
+}
+
+docs {
+  Simula el callback que Google hace al servidor tras la autenticacion.
+
+  Como obtener code y state para pruebas manuales:
+  1. Abrir en el navegador: http://localhost:8888/api/auth/google
+  2. Autenticarse con Google
+  3. El navegador sera redirigido a /api/auth/google/callback?code=XXX&state=YYY
+  4. Antes de que cargue la pagina, copiar code y state de la URL
+  5. Pegar los valores en los query params de esta request
+
+  ADVERTENCIA: El "code" de Google expira en ~10 segundos y es de un solo uso.
+  Debes ejecutar esta request inmediatamente despues de copiarlo.
+}

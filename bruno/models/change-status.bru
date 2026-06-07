@@ -1,0 +1,15 @@
+meta {
+  name: Cambiar estado de modelo
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/models/MODEL_ID_AQUI/status
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

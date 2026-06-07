@@ -1,0 +1,22 @@
+meta {
+  name: Asignar dispositivo a grupo
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/group/assign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "group_id": "GROUP_ID_AQUI",
+    "device_imei": "123456789012345"
+  }
+}

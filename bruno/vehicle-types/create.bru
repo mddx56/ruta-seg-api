@@ -1,0 +1,17 @@
+meta {
+  name: Crear tipo de vehículo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/vehicle-types
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Camioneta"
+  }
+}

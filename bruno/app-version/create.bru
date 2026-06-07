@@ -1,0 +1,26 @@
+meta {
+  name: Crear versión de app (admin)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{prd}}/api/app-version
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "app_id": "bo.rutasegura.app",
+    "version_name": "0.1.0",
+    "version_code": 1,
+    "url_playstore": "https://play.google.com/store/apps/details?id=bo.rutasegura.app",
+    "is_force_update": false,
+    "plataform": "android"
+  }
+}

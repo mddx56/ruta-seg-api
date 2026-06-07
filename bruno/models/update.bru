@@ -1,0 +1,17 @@
+meta {
+  name: Actualizar modelo
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/models/MODEL_ID_AQUI
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Hilux 4x4"
+  }
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Crear modelo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/models
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Hilux",
+    "make_id": "MAKE_ID_AQUI"
+  }
+}

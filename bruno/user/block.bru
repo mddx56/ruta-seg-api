@@ -1,0 +1,21 @@
+meta {
+  name: Bloquear / desbloquear usuario (admin)
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/user/USER_ID_AQUI/block
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "is_blocked": true
+  }
+}

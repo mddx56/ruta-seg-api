@@ -1,0 +1,21 @@
+meta {
+  name: Crear usuario
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/user
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Nuevo Usuario",
+    "username": "nuevousuario",
+    "telp_number": "70000002",
+    "email": "nuevo@example.com",
+    "password": "1234"
+  }
+}

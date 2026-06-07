@@ -1,0 +1,15 @@
+meta {
+  name: Buscar por chasis
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/vehicles/by-chassis/NUMERO_CHASIS
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

@@ -1,0 +1,80 @@
+name: Deploy API to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install Protoc & Generate gRPC Code
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          export PATH="$PATH:$(go env GOPATH)/bin"
+          make proto || (
+            protoc --go_out=. --go_opt=module=github.com/Caknoooo/go-gin-clean-starter --go-grpc_out=. --go-grpc_opt=module=github.com/Caknoooo/go-gin-clean-starter proto/device_service.proto
+            protoc --go_out=. --go_opt=module=github.com/Caknoooo/go-gin-clean-starter --go-grpc_out=. --go-grpc_opt=module=github.com/Caknoooo/go-gin-clean-starter proto/position_service.proto
+          )
+
+      - name: Build Go App
+        run: |
+          # Compilamos el binario de la API y el de utilidades (reset-db)
+          # Los nombramos de forma temporal (con sufijo -new) para evitar el error 'text file busy' al subirlos usando scp
+          GOOS=linux GOARCH=amd64 go build -o ruta-api-new ./cmd/main.go
+          GOOS=linux GOARCH=amd64 go build -o reset-db-new ./cmd/reset_db/main.go
+
+      - name: Copy binaries to DigitalOcean
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          password: ${{ secrets.DO_PASSWORD }}
+          source: "ruta-api-new,reset-db-new,.env"
+          target: "/home/root/rutasegura/ruta-segura-api"
+
+      - name: Stop, Migrate and Restart Service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          password: ${{ secrets.DO_PASSWORD }}
+          script: |
+            cd /home/root/rutasegura/ruta-segura-api
+
+            # 1. Detenemos el servicio actual
+            sudo systemctl stop ruta-segura-api
+
+            # 2. Reemplazamos los binarios viejos con los nuevos de forma segura
+            mv ruta-api-new ruta-api
+            mv reset-db-new reset-db
+
+            # 3. Damos permisos de ejecución
+            chmod +x ruta-api
+            chmod +x reset-db
+
+            # 4. EJECUTAMOS LA MIGRACIÓN
+            # Según tu código (script/command.go), este es el comando correcto
+            ./ruta-api --migrate:run
+
+            # 5. EJECUTAMOS EL SEED (idempotente: no duplica si el usuario ya existe)
+            ./ruta-api --seed
+
+            # En caso de querer usar la herramienta reset:
+            # (Úsalo solo bajo tu propia responsabilidad ingresando tú mismo al ssh)
+            # ./reset-db
+
+            # 6. Iniciamos y revisamos que todo esté OK
+            sudo systemctl start ruta-segura-api
+            sudo systemctl status ruta-segura-api --no-pager

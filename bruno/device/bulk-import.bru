@@ -1,0 +1,28 @@
+meta {
+  name: Importar dispositivos masivo
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/devices/bulk/import
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "imei": "123456789012345",
+        "cod_sim": "89591111111111111111",
+        "sim_phone_number": "70000001",
+        "sim_provider": "Tigo"
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Actualizar grupo
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/group
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "id": "GROUP_ID_AQUI",
+    "name": "Grupo Norte Actualizado"
+  }
+}

@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package target.device;
+
+option go_package = "github.com/Caknoooo/go-gin-clean-starter/pkg/pb/device_proto";
+
+message ListDevicesRequest {
+    // Vacio por el momento, listar todos
+}
+
+message DeviceItem {
+    string imei = 1;
+    string model = 2;
+    string sim_phone_number = 3;
+    bool status = 4;
+}
+
+message ListDevicesResponse {
+    repeated DeviceItem devices = 1;
+}
+
+message CheckIMEIRequest {
+    string imei = 1;
+}
+
+message CheckIMEIResponse {
+    bool exists = 1;
+}
+
+message BatchCheckIMEIsRequest {
+    repeated string imeis = 1;
+}
+
+message BatchCheckIMEIsResponse {
+    repeated string found = 1;
+}
+
+service DeviceService {
+    rpc ListDevicesSimple  (ListDevicesRequest)      returns (ListDevicesResponse);
+    rpc CheckIMEIExists    (CheckIMEIRequest)         returns (CheckIMEIResponse);
+    rpc BatchCheckIMEIs    (BatchCheckIMEIsRequest)   returns (BatchCheckIMEIsResponse);
+}

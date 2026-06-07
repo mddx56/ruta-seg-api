@@ -1,0 +1,15 @@
+meta {
+  name: Dispositivos instalados del usuario
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/user/USER_ID_AQUI/devices
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

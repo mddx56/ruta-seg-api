@@ -1,0 +1,27 @@
+meta {
+  name: Google OAuth - Iniciar Login
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{dev}}/api/auth/google
+  body: none
+  auth: none
+}
+
+docs {
+  Redirige al usuario a la pantalla de consentimiento de Google.
+  
+  Flujo completo:
+  1. Ejecutar esta request → recibiras un 307 redirect hacia accounts.google.com
+  2. Abrir la URL del header "Location" en un navegador
+  3. Autenticarse con Google
+  4. Google redirige a /api/auth/google/callback?code=...&state=...
+  5. El servidor devuelve access_token + refresh_token
+  
+  NOTA: Esta request no se puede completar directamente en Bruno porque
+  requiere interaccion del usuario en el navegador de Google.
+  Usa "Google OAuth - Callback Manual" para simular el paso final
+  una vez que tengas el code de Google.
+}

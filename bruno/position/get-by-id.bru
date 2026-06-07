@@ -1,0 +1,15 @@
+meta {
+  name: Obtener posición por ID
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/positions/POSITION_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

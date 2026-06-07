@@ -1,0 +1,15 @@
+meta {
+  name: Listar vehículos simple
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{dev}}/api/vehicles/simple
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

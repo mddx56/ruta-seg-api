@@ -1,0 +1,15 @@
+meta {
+  name: Historial del dispositivo
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/positions/history?imei=123456789012345&start=2024-01-01&end=2024-12-31
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
