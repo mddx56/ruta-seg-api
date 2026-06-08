@@ -1,0 +1,15 @@
+meta {
+  name: Mis vehículos (por JWT)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{dev}}/api/vehicles/my
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

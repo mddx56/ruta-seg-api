@@ -41,8 +41,8 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           password: ${{ secrets.DO_PASSWORD }}
-          source: "ruta-api-new,reset-db-new,.env"
-          target: "/home/root/rutasegura/ruta-segura-api"
+          source: "ruta-api-new,reset-db-new,.env,database/seeders/json"
+          target: "/home/root/rutasegura/ruta-seg-api"
 
       - name: Stop, Migrate and Restart Service
         uses: appleboy/ssh-action@v1.0.3
@@ -51,10 +51,36 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           password: ${{ secrets.DO_PASSWORD }}
           script: |
-            cd /home/root/rutasegura/ruta-segura-api
+            cd /home/root/rutasegura/ruta-seg-api
 
-            # 1. Detenemos el servicio actual
-            sudo systemctl stop ruta-segura-api
+            # 1. Si el servicio no existe, lo creamos y habilitamos
+            SERVICE_FILE="/etc/systemd/system/ruta-seg-api.service"
+            if [ ! -f "$SERVICE_FILE" ]; then
+              echo "Servicio no encontrado, creando $SERVICE_FILE..."
+              sudo tee "$SERVICE_FILE" > /dev/null <<'EOF'
+            [Unit]
+            Description=Ruta Segura API
+            After=network.target
+
+            [Service]
+            Type=simple
+            User=root
+            WorkingDirectory=/home/root/rutasegura/ruta-seg-api
+            ExecStart=/home/root/rutasegura/ruta-seg-api/ruta-api
+            Restart=on-failure
+            RestartSec=5
+            EnvironmentFile=/home/root/rutasegura/ruta-seg-api/.env
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+              sudo systemctl daemon-reload
+              sudo systemctl enable ruta-seg-api
+              echo "Servicio ruta-seg-api creado y habilitado"
+            else
+              # El servicio ya existe, lo detenemos para reemplazar binarios
+              sudo systemctl stop ruta-seg-api
+            fi
 
             # 2. Reemplazamos los binarios viejos con los nuevos de forma segura
             mv ruta-api-new ruta-api
@@ -75,6 +101,14 @@ jobs:
             # (Úsalo solo bajo tu propia responsabilidad ingresando tú mismo al ssh)
             # ./reset-db
 
-            # 6. Iniciamos y revisamos que todo esté OK
-            sudo systemctl start ruta-segura-api
-            sudo systemctl status ruta-segura-api --no-pager
+            # 6. Iniciamos y validamos que el servicio esté activo
+            sudo systemctl start ruta-seg-api
+            sudo systemctl status ruta-seg-api --no-pager
+
+            # 7. Validamos que el servicio ruta-seg-api esté corriendo (falla el deploy si no)
+            if ! sudo systemctl is-active --quiet ruta-seg-api; then
+              echo "ERROR: el servicio ruta-seg-api no está activo después del inicio"
+              sudo journalctl -u ruta-seg-api --no-pager -n 50
+              exit 1
+            fi
+            echo "OK: servicio ruta-seg-api activo y corriendo"
