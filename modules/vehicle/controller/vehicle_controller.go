@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Caknoooo/go-gin-clean-starter/modules/vehicle/dto"
@@ -21,6 +22,7 @@ type VehicleController interface {
 	ChangeStatus(ctx *gin.Context)
 	FindAll(ctx *gin.Context)
 	FindByID(ctx *gin.Context)
+	GetMyVehicles(ctx *gin.Context)
 	GetSimple(ctx *gin.Context)
 	FindByChassisFull(ctx *gin.Context)
 }
@@ -180,6 +182,28 @@ func (c *vehicleController) FindAll(ctx *gin.Context) {
 // @Failure      400  {object}  utils.Response
 // @Failure      500  {object}  utils.Response
 // @Router       /api/vehicles/{id} [get]
+func (c *vehicleController) GetMyVehicles(ctx *gin.Context) {
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, utils.BuildResponseFailed("No autorizado", "user_id no encontrado en token", nil))
+		return
+	}
+
+	id, err := uuid.Parse(fmt.Sprintf("%v", userID))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, utils.BuildResponseFailed(dto.MESSAGE_FAILED_INVALID_ID, err.Error(), nil))
+		return
+	}
+
+	res, err := c.service.FindByUserID(ctx.Request.Context(), id)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, utils.BuildResponseFailed(dto.MESSAGE_INTERNAL_SERVER_ERROR, err.Error(), nil))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS, res))
+}
+
 func (c *vehicleController) FindByID(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := uuid.Parse(idStr)

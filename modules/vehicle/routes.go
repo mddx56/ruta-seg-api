@@ -26,6 +26,7 @@ func RegisterRoutes(router *gin.Engine, injector *do.Injector) {
 	{
 		vehicleGroup.POST("", middlewares.Authenticate(jwtService), vehicleController.Create)
 		vehicleGroup.GET("", middlewares.Authenticate(jwtService), vehicleController.FindAll)
+		vehicleGroup.GET("/my", middlewares.Authenticate(jwtService), vehicleController.GetMyVehicles)
 		vehicleGroup.GET("/simple", middlewares.Authenticate(jwtService), vehicleController.GetSimple)
 		vehicleGroup.GET("/by-chassis/:chassis", middlewares.Authenticate(jwtService), vehicleController.FindByChassisFull)
 		vehicleGroup.GET("/:id", middlewares.Authenticate(jwtService), vehicleController.FindByID)

@@ -19,6 +19,7 @@ type VehicleService interface {
 	FindAll(ctx context.Context) ([]dto.VehicleResponse, error)
 	GetSimple(ctx context.Context, available bool) ([]dto.VehicleSimpleResponse, error)
 	FindByID(ctx context.Context, id uuid.UUID) (dto.VehicleResponse, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) ([]dto.VehicleResponse, error)
 	FindByChassisFull(ctx context.Context, chassis string) (dto.VehicleFullResponse, error)
 }
 
@@ -191,6 +192,29 @@ func (s *vehicleService) GetSimple(ctx context.Context, available bool) ([]dto.V
 		})
 	}
 
+	return responses, nil
+}
+
+func (s *vehicleService) FindByUserID(ctx context.Context, userID uuid.UUID) ([]dto.VehicleResponse, error) {
+	vehicles, err := s.repo.FindByUserID(ctx, userID)
+	if err != nil {
+		return []dto.VehicleResponse{}, err
+	}
+
+	responses := make([]dto.VehicleResponse, 0)
+	for _, v := range vehicles {
+		res := s.mapToResponse(v)
+		if len(v.Installations) > 0 {
+			inst := v.Installations[0]
+			imei := inst.Imei
+			res.ActiveInstallation = &dto.VehicleInstallationInfo{
+				InstallationID: inst.InstallationID,
+				DeviceIMEI:     imei,
+				InstalledAt:    inst.InstalledAt,
+			}
+		}
+		responses = append(responses, res)
+	}
 	return responses, nil
 }
 

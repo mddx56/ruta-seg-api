@@ -17,6 +17,7 @@ type VehicleRepository interface {
 	FindAll(ctx context.Context) ([]entities.Vehicle, error)
 	FindAllSimple(ctx context.Context, available bool) ([]entities.Vehicle, error)
 	FindByID(ctx context.Context, id uuid.UUID) (entities.Vehicle, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) ([]entities.Vehicle, error)
 	FindByPlaca(ctx context.Context, placa string) (entities.Vehicle, error)
 	FindByChassis(ctx context.Context, chassis string) (entities.Vehicle, error)
 	FindByChassisFull(ctx context.Context, chassis string) (entities.Vehicle, error)
@@ -93,6 +94,19 @@ func (r *vehicleRepository) FindByID(ctx context.Context, id uuid.UUID) (entitie
 		Where("status = ?", true).
 		First(&vehicle, id).Error
 	return vehicle, err
+}
+
+func (r *vehicleRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]entities.Vehicle, error) {
+	var vehicles []entities.Vehicle
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Model").
+		Preload("Model.Make").
+		Preload("Installations", "removed_at IS NULL AND status = ?", true).
+		Preload("Installations.Device").
+		Where("user_id = ? AND status = ?", userID, true).
+		Find(&vehicles).Error
+	return vehicles, err
 }
 
 func (r *vehicleRepository) FindByPlaca(ctx context.Context, placa string) (entities.Vehicle, error) {
