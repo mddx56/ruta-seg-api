@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/positions/last?imei=123456789012345
+  url: {{prd}}/api/positions/last?imei=0864943049250356
   body: none
   auth: bearer
+}
+
+params:query {
+  imei: 0864943049250356
 }
 
 auth:bearer {

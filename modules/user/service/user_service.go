@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"errors"
+	"strings"
 
 	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 	diRepo "github.com/Caknoooo/go-gin-clean-starter/modules/device_installation/repository"
@@ -11,11 +13,13 @@ import (
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/helpers"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
 type UserService interface {
 	GetUserById(ctx context.Context, userId string) (dto.UserResponse, error)
+	GetUserByIdOrEmail(ctx context.Context, identifier string) (dto.UserResponse, error)
 	Create(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error)
 	Update(ctx context.Context, req dto.UserUpdateRequest, userId string) (dto.UserUpdateResponse, error)
 	UpdateMe(ctx context.Context, userId string, req dto.UserMeUpdateRequest) (dto.UserResponse, error)
@@ -68,6 +72,34 @@ func (s *userService) GetUserById(ctx context.Context, userId string) (dto.UserR
 	}, nil
 }
 
+func (s *userService) GetUserByIdOrEmail(ctx context.Context, identifier string) (dto.UserResponse, error) {
+	var user entities.User
+	var err error
+
+	if strings.Contains(identifier, "@") {
+		user, err = s.userRepository.GetUserByEmail(ctx, s.db, identifier)
+	} else {
+		user, err = s.userRepository.GetUserById(ctx, s.db, identifier)
+	}
+	if err != nil {
+		return dto.UserResponse{}, dto.ErrUserNotFound
+	}
+
+	return dto.UserResponse{
+		ID:          user.ID.String(),
+		Name:        user.Name,
+		Username:    user.Username,
+		Email:       user.Email,
+		TelpNumber:  user.TelpNumber,
+		Role:        user.Role,
+		RoleLiteral: constants.RoleLiteral(user.Role),
+		ImageUrl:    user.ImageUrl,
+		IsVerified:  user.IsVerified,
+		IsBlocked:   user.IsBlocked,
+		Status:      user.Status,
+	}, nil
+}
+
 func (s *userService) Create(ctx context.Context, req dto.UserCreateRequest) (dto.UserResponse, error) {
 	_, isExist, err := s.userRepository.CheckEmail(ctx, s.db, req.Email)
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -78,36 +110,43 @@ func (s *userService) Create(ctx context.Context, req dto.UserCreateRequest) (dt
 		return dto.UserResponse{}, dto.ErrEmailAlreadyExists
 	}
 
-	hashedPassword, err := helpers.HashPassword(req.Password)
-	if err != nil {
-		return dto.UserResponse{}, err
-	}
-
 	user := entities.User{
 		ID:         uuid.New(),
 		Name:       req.Name,
+		Username:   req.Username,
 		Email:      req.Email,
 		TelpNumber: req.TelpNumber,
-		Password:   hashedPassword,
+		Password:   req.Password,
 		Role:       constants.ENUM_ROLE_USER,
 		IsVerified: false,
 	}
 
 	createdUser, err := s.userRepository.Register(ctx, s.db, user)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			if strings.Contains(pgErr.ConstraintName, "username") {
+				return dto.UserResponse{}, dto.ErrUsernameAlreadyExists
+			}
+			if strings.Contains(pgErr.ConstraintName, "email") {
+				return dto.UserResponse{}, dto.ErrEmailAlreadyExists
+			}
+		}
 		return dto.UserResponse{}, err
 	}
 
 	return dto.UserResponse{
-		ID:         createdUser.ID.String(),
-		Name:       createdUser.Name,
-		Email:      createdUser.Email,
-		TelpNumber: createdUser.TelpNumber,
-		Role:       createdUser.Role,
+		ID:          createdUser.ID.String(),
+		Name:        createdUser.Name,
+		Username:    createdUser.Username,
+		Email:       createdUser.Email,
+		TelpNumber:  createdUser.TelpNumber,
+		Role:        createdUser.Role,
 		RoleLiteral: constants.RoleLiteral(createdUser.Role),
-		ImageUrl:   createdUser.ImageUrl,
-		IsVerified: createdUser.IsVerified,
-		Status:     createdUser.Status,
+		ImageUrl:    createdUser.ImageUrl,
+		IsVerified:  createdUser.IsVerified,
+		IsBlocked:   createdUser.IsBlocked,
+		Status:      createdUser.Status,
 	}, nil
 }
 

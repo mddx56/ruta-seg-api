@@ -38,7 +38,9 @@ import (
 	vehiclemodule "github.com/Caknoooo/go-gin-clean-starter/modules/vehicle"
 	vehicletype "github.com/Caknoooo/go-gin-clean-starter/modules/vehicle_type"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
+	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 	"github.com/Caknoooo/go-gin-clean-starter/providers"
+	redisProvider "github.com/Caknoooo/go-gin-clean-starter/providers/redis"
 	"github.com/Caknoooo/go-gin-clean-starter/script"
 	"gorm.io/gorm"
 
@@ -157,6 +159,32 @@ func main() {
 				_ = repo.DeleteExpired(context.Background(), nil)
 			}
 		}()
+
+		// Warm-up: carga device_last_positions desde Postgres a Redis al iniciar
+		if redisSvc, redisErr := do.InvokeNamed[redisProvider.RedisService](injector, "Redis"); redisErr == nil {
+			go func() {
+				cache := redisProvider.NewDevicePositionCache(redisSvc)
+				var rows []entities.DeviceLastPosition
+				if err := db.Find(&rows).Error; err != nil {
+					log.Printf("[pos-cache] warm-up error al leer device_last_positions: %v", err)
+					return
+				}
+				ctx := context.Background()
+				for _, row := range rows {
+					_ = cache.SetNX(ctx, redisProvider.CachedPosition{
+						IMEI:       row.IMEI,
+						Latitude:   row.Latitude,
+						Longitude:  row.Longitude,
+						Speed:      row.Speed,
+						Course:     row.Course,
+						DeviceTime: row.DeviceTime,
+						ServerTime: row.ServerTime,
+						Attributes: row.Attributes,
+					})
+				}
+				log.Printf("[pos-cache] warm-up completado: %d dispositivos cargados en Redis", len(rows))
+			}()
+		}
 	}
 
 	// ── INICIAR GRPC SERVER ──

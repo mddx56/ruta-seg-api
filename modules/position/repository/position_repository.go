@@ -3,10 +3,12 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
+	redisProvider "github.com/Caknoooo/go-gin-clean-starter/providers/redis"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -53,16 +55,66 @@ type VehicleLastPosition struct {
 }
 
 type positionRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache redisProvider.DevicePositionCache
 }
 
-func NewPositionRepository(db *gorm.DB) PositionRepository {
-	return &positionRepository{db: db}
+func NewPositionRepository(db *gorm.DB, cache redisProvider.DevicePositionCache) PositionRepository {
+	return &positionRepository{db: db, cache: cache}
 }
+
+// --- escritura ---
 
 func (r *positionRepository) Create(ctx context.Context, position *entities.Position) error {
-	return r.db.WithContext(ctx).Create(position).Error
+	if err := r.db.WithContext(ctx).Create(position).Error; err != nil {
+		return err
+	}
+	r.updatePositionCache(ctx, position)
+	return nil
 }
+
+// updatePositionCache escribe en Redis y, como escritura dual de seguridad, en device_last_positions.
+func (r *positionRepository) updatePositionCache(ctx context.Context, p *entities.Position) {
+	// Redis (fuente principal de lecturas)
+	if r.cache != nil {
+		pos := redisProvider.CachedPosition{
+			IMEI:       p.Imei,
+			Latitude:   p.Latitude,
+			Longitude:  p.Longitude,
+			Speed:      p.Speed,
+			Course:     p.Course,
+			DeviceTime: p.DeviceTime,
+			ServerTime: p.ServerTime,
+			Attributes: p.Attributes,
+		}
+		if err := r.cache.Set(ctx, pos); err != nil {
+			log.Printf("[pos-cache] error al escribir en Redis para %s: %v", p.Imei, err)
+		}
+	}
+
+	// Postgres dual-write: mantiene device_last_positions como respaldo hasta que Redis sea estable
+	sql := `
+		INSERT INTO device_last_positions (imei, latitude, longitude, speed, course, device_time, server_time, attributes, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+		ON CONFLICT (imei) DO UPDATE SET
+			latitude    = EXCLUDED.latitude,
+			longitude   = EXCLUDED.longitude,
+			speed       = EXCLUDED.speed,
+			course      = EXCLUDED.course,
+			device_time = EXCLUDED.device_time,
+			server_time = EXCLUDED.server_time,
+			attributes  = EXCLUDED.attributes,
+			updated_at  = NOW()
+	`
+	if err := r.db.WithContext(ctx).Exec(sql,
+		p.Imei, p.Latitude, p.Longitude, p.Speed, p.Course,
+		p.DeviceTime, p.ServerTime, p.Attributes,
+	).Error; err != nil {
+		log.Printf("[pos-cache] error al actualizar device_last_positions para %s: %v", p.Imei, err)
+	}
+}
+
+// --- lecturas ---
 
 func (r *positionRepository) FindByID(ctx context.Context, id uint64) (entities.Position, error) {
 	var position entities.Position
@@ -82,12 +134,16 @@ func (r *positionRepository) FindByIMEI(ctx context.Context, imei string) ([]ent
 }
 
 func (r *positionRepository) FindLastByIMEI(ctx context.Context, imei string) (entities.Position, error) {
-	var cache entities.DeviceLastPosition
-	err := r.db.WithContext(ctx).
-		Where("imei = ?", imei).
-		First(&cache).Error
+	// 1. Redis
+	if r.cache != nil {
+		if pos, ok, _ := r.cache.Get(ctx, imei); ok {
+			return cachedToPosition(pos), nil
+		}
+	}
 
-	if err == nil {
+	// 2. Fallback: device_last_positions
+	var cache entities.DeviceLastPosition
+	if err := r.db.WithContext(ctx).Where("imei = ?", imei).First(&cache).Error; err == nil {
 		return entities.Position{
 			Imei:       cache.IMEI,
 			Latitude:   cache.Latitude,
@@ -100,9 +156,9 @@ func (r *positionRepository) FindLastByIMEI(ctx context.Context, imei string) (e
 		}, nil
 	}
 
-	// Fallback to positions table en caso de no encontrar en caché
+	// 3. Fallback final: tabla positions
 	var position entities.Position
-	err = r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).
 		Where("device_id = ?", imei).
 		Order("server_time DESC").
 		First(&position).Error
@@ -130,8 +186,6 @@ func (r *positionRepository) Delete(ctx context.Context, id uint64) error {
 
 func (r *positionRepository) FindForHistory(ctx context.Context, imei string, start, end time.Time) ([]entities.Position, error) {
 	var positions []entities.Position
-	// Select specific fields including ID for the raw query later.
-	// Note: We don't fetch Geom here to save memory, it's used in CalculateRoute.
 	err := r.db.WithContext(ctx).
 		Select("id, latitude, longitude, speed, device_time, attributes").
 		Where("device_id = ? AND device_time >= ? AND device_time < ?", imei, start, end).
@@ -140,16 +194,24 @@ func (r *positionRepository) FindForHistory(ctx context.Context, imei string, st
 	return positions, err
 }
 
-
-
 func (r *positionRepository) FindLastPositions(ctx context.Context) ([]entities.Position, error) {
+	// 1. Redis
+	if r.cache != nil {
+		if cached, err := r.cache.GetAll(ctx); err == nil && len(cached) > 0 {
+			positions := make([]entities.Position, 0, len(cached))
+			for _, c := range cached {
+				positions = append(positions, cachedToPosition(c))
+			}
+			return positions, nil
+		}
+	}
+
+	// 2. Fallback: device_last_positions
 	var caches []entities.DeviceLastPosition
-	err := r.db.WithContext(ctx).Find(&caches).Error
-	if err != nil {
+	if err := r.db.WithContext(ctx).Find(&caches).Error; err != nil {
 		return nil, err
 	}
-	
-	var positions []entities.Position
+	positions := make([]entities.Position, 0, len(caches))
 	for _, cache := range caches {
 		positions = append(positions, entities.Position{
 			Imei:       cache.IMEI,
@@ -166,11 +228,9 @@ func (r *positionRepository) FindLastPositions(ctx context.Context) ([]entities.
 }
 
 // ---------------------------------------------------------------------------
-// Métodos orientados a Vehículo (correctos)
+// Métodos orientados a Vehículo
 // ---------------------------------------------------------------------------
 
-// FindSlotsByVehicleAndRange devuelve los tramos (IMEI + ventana de tiempo)
-// en que el vehículo tuvo un dispositivo instalado, que se solapan con [start, end).
 func (r *positionRepository) FindSlotsByVehicleAndRange(
 	ctx context.Context, vehicleID uuid.UUID, start, end time.Time,
 ) ([]InstallationSlot, error) {
@@ -207,8 +267,6 @@ func (r *positionRepository) FindSlotsByVehicleAndRange(
 	return slots, nil
 }
 
-// FindForHistoryBySlots busca posiciones de múltiples slots en una sola query
-// usando OR dinámico — PostgreSQL usa Bitmap Index Scan por cada condición.
 func (r *positionRepository) FindForHistoryBySlots(
 	ctx context.Context, slots []InstallationSlot, globalStart, globalEnd time.Time,
 ) ([]entities.Position, error) {
@@ -238,51 +296,145 @@ func (r *positionRepository) FindForHistoryBySlots(
 	return positions, err
 }
 
-// FindLastPositionsByVehicles usa un simple JOIN a device_last_positions caché
+// vehicleInstallRow es el resultado del JOIN vehículo+instalación sin datos de posición.
+type vehicleInstallRow struct {
+	VehicleID string `gorm:"column:vehicle_id"`
+	Placa     string `gorm:"column:placa"`
+	IMEI      string `gorm:"column:imei"`
+}
+
+// FindLastPositionsByVehicles obtiene datos de instalación desde Postgres
+// y posiciones desde Redis, con fallback a device_last_positions.
 func (r *positionRepository) FindLastPositionsByVehicles(ctx context.Context) ([]VehicleLastPosition, error) {
-	var results []VehicleLastPosition
-	err := r.db.WithContext(ctx).Raw(`
-		SELECT
-			di.vehicle_id::text,
-			v.placa,
-			di.imei,
-			dlp.latitude,
-			dlp.longitude,
-			dlp.speed,
-			dlp.course,
-			dlp.device_time,
-			dlp.server_time,
-			dlp.attributes
+	var installs []vehicleInstallRow
+	if err := r.db.WithContext(ctx).Raw(`
+		SELECT di.vehicle_id::text, v.placa, di.imei
 		FROM device_installations di
 		JOIN vehicles v ON v.id = di.vehicle_id
-		JOIN device_last_positions dlp ON dlp.imei = di.imei
 		WHERE di.removed_at IS NULL
 		ORDER BY v.placa ASC
-	`).Scan(&results).Error
-	return results, err
+	`).Scan(&installs).Error; err != nil {
+		return nil, err
+	}
+	if len(installs) == 0 {
+		return nil, nil
+	}
+
+	imeis := make([]string, len(installs))
+	for i, inst := range installs {
+		imeis[i] = inst.IMEI
+	}
+
+	posMap := r.resolvePositions(ctx, imeis)
+
+	results := make([]VehicleLastPosition, 0, len(installs))
+	for _, inst := range installs {
+		pos, ok := posMap[inst.IMEI]
+		if !ok {
+			continue
+		}
+		results = append(results, VehicleLastPosition{
+			VehicleID:  inst.VehicleID,
+			Placa:      inst.Placa,
+			Imei:       inst.IMEI,
+			Latitude:   pos.Latitude,
+			Longitude:  pos.Longitude,
+			Speed:      pos.Speed,
+			Course:     pos.Course,
+			DeviceTime: pos.DeviceTime,
+			ServerTime: pos.ServerTime,
+			Attributes: pos.Attributes,
+		})
+	}
+	return results, nil
 }
 
 // FindLastPositionByVehicle obtiene la última posición de UN vehículo específico.
 func (r *positionRepository) FindLastPositionByVehicle(ctx context.Context, vehicleID uuid.UUID) (VehicleLastPosition, error) {
-	var result VehicleLastPosition
-	err := r.db.WithContext(ctx).Raw(fmt.Sprintf(`
-		SELECT
-			di.vehicle_id::text,
-			v.placa,
-			di.imei,
-			dlp.latitude,
-			dlp.longitude,
-			dlp.speed,
-			dlp.course,
-			dlp.device_time,
-			dlp.server_time,
-			dlp.attributes
+	var inst vehicleInstallRow
+	if err := r.db.WithContext(ctx).Raw(fmt.Sprintf(`
+		SELECT di.vehicle_id::text, v.placa, di.imei
 		FROM device_installations di
 		JOIN vehicles v ON v.id = di.vehicle_id
-		JOIN device_last_positions dlp ON dlp.imei = di.imei
 		WHERE di.vehicle_id = '%s'
 		  AND di.removed_at IS NULL
 		LIMIT 1
-	`, vehicleID.String())).Scan(&result).Error
-	return result, err
+	`, vehicleID.String())).Scan(&inst).Error; err != nil {
+		return VehicleLastPosition{}, err
+	}
+	if inst.IMEI == "" {
+		return VehicleLastPosition{}, gorm.ErrRecordNotFound
+	}
+
+	posMap := r.resolvePositions(ctx, []string{inst.IMEI})
+	pos, ok := posMap[inst.IMEI]
+	if !ok {
+		return VehicleLastPosition{}, gorm.ErrRecordNotFound
+	}
+	return VehicleLastPosition{
+		VehicleID:  inst.VehicleID,
+		Placa:      inst.Placa,
+		Imei:       inst.IMEI,
+		Latitude:   pos.Latitude,
+		Longitude:  pos.Longitude,
+		Speed:      pos.Speed,
+		Course:     pos.Course,
+		DeviceTime: pos.DeviceTime,
+		ServerTime: pos.ServerTime,
+		Attributes: pos.Attributes,
+	}, nil
+}
+
+// resolvePositions busca posiciones en Redis y completa los misses con device_last_positions.
+func (r *positionRepository) resolvePositions(ctx context.Context, imeis []string) map[string]redisProvider.CachedPosition {
+	result := make(map[string]redisProvider.CachedPosition, len(imeis))
+
+	// Intento Redis
+	if r.cache != nil {
+		if cached, err := r.cache.MGet(ctx, imeis); err == nil {
+			for k, v := range cached {
+				result[k] = v
+			}
+		}
+	}
+
+	// Fallback Postgres para los IMEIs que no estaban en Redis
+	var missing []string
+	for _, imei := range imeis {
+		if _, ok := result[imei]; !ok {
+			missing = append(missing, imei)
+		}
+	}
+	if len(missing) > 0 {
+		var dbRows []entities.DeviceLastPosition
+		if err := r.db.WithContext(ctx).Where("imei IN ?", missing).Find(&dbRows).Error; err == nil {
+			for _, row := range dbRows {
+				result[row.IMEI] = redisProvider.CachedPosition{
+					IMEI:       row.IMEI,
+					Latitude:   row.Latitude,
+					Longitude:  row.Longitude,
+					Speed:      row.Speed,
+					Course:     row.Course,
+					DeviceTime: row.DeviceTime,
+					ServerTime: row.ServerTime,
+					Attributes: row.Attributes,
+				}
+			}
+		}
+	}
+	return result
+}
+
+// cachedToPosition convierte un CachedPosition en entities.Position.
+func cachedToPosition(c redisProvider.CachedPosition) entities.Position {
+	return entities.Position{
+		Imei:       c.IMEI,
+		Latitude:   c.Latitude,
+		Longitude:  c.Longitude,
+		Speed:      c.Speed,
+		Course:     c.Course,
+		DeviceTime: c.DeviceTime,
+		ServerTime: c.ServerTime,
+		Attributes: c.Attributes,
+	}
 }

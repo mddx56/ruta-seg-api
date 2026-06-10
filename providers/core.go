@@ -48,13 +48,16 @@ func RegisterDependencies(injector *do.Injector) {
 	jwtService := do.MustInvokeNamed[authService.JWTService](injector, constants.JWTService)
 
 	userRepository := repository.NewUserRepository(db)
-	refreshTokenRepository := authRepo.NewRefreshTokenRepository(db)
+	redisService, _ := do.InvokeNamed[redisProvider.RedisService](injector, "Redis")
+	refreshTokenRepository := authRepo.NewRefreshTokenCacheRepository(
+		authRepo.NewRefreshTokenRepository(db),
+		redisService,
+	)
 	deviceInstallationRepo, _ := diRepo.NewDeviceInstallationRepository(injector)
 	groupRepository, _ := groupRepo.NewGroupRepository(injector)
 	appVersionRepo, _ := appVersionRepoPkg.NewAppVersionRepository(injector)
 
 	userService := userService.NewUserService(userRepository, deviceInstallationRepo, groupRepository, db)
-	redisService, _ := do.InvokeNamed[redisProvider.RedisService](injector, "Redis")
 	authService := authService.NewAuthService(userRepository, refreshTokenRepository, appVersionRepo, jwtService, redisService, db)
 
 	do.Provide(

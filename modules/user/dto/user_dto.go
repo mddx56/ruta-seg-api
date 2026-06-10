@@ -112,7 +112,8 @@ type (
 	}
 
 	VerifyEmailRequest struct {
-		Token string `json:"token" form:"token" binding:"required"`
+		Email string `json:"email" form:"email" binding:"required,email"`
+		OTP   string `json:"otp" form:"otp" binding:"required,len=4"`
 	}
 
 	VerifyEmailResponse struct {

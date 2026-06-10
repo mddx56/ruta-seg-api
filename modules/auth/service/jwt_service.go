@@ -44,7 +44,7 @@ func NewJWTService() JWTService {
 func getSecretKey() string {
 	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
-		secretKey = "Template"
+		log.Fatal("JWT_SECRET no está configurado en las variables de entorno")
 	}
 	return secretKey
 }
@@ -99,7 +99,10 @@ func (j *jwtService) GetUserIDByToken(token string) (string, error) {
 		return "", err
 	}
 
-	claims := tToken.Claims.(jwt.MapClaims)
+	claims, ok := tToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("formato de claims inválido")
+	}
 	id := fmt.Sprintf("%v", claims["user_id"])
 	return id, nil
 }
@@ -110,7 +113,10 @@ func (j *jwtService) GetRoleByToken(token string) (string, error) {
 		return "", err
 	}
 
-	claims := tToken.Claims.(jwt.MapClaims)
+	claims, ok := tToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("formato de claims inválido")
+	}
 	role := fmt.Sprintf("%v", claims["role"])
 	return role, nil
 }

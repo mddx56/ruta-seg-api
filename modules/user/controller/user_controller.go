@@ -491,26 +491,26 @@ func (c *userController) GetInstalledDevices(ctx *gin.Context) {
 }
 
 // GetById godoc
-// @Summary      Get user by ID
-// @Description  Get user details by user ID
+// @Summary      Get user by ID or email
+// @Description  Get user details by user ID (UUID) or email address
 // @Tags         user
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      string  true  "User ID"
+// @Param        id   path      string  true  "User ID (UUID) or email"
 // @Success      200  {object}  utils.Response
 // @Failure      400  {object}  utils.Response
 // @Router       /api/user/{id} [get]
 func (c *userController) GetById(ctx *gin.Context) {
-	userId := ctx.Param("id")
+	identifier := ctx.Param("id")
 
-	if userId == "" {
-		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, "ID de usuario requerido", nil)
+	if identifier == "" {
+		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, "ID o email de usuario requerido", nil)
 		ctx.JSON(http.StatusBadRequest, res)
 		return
 	}
 
-	result, err := c.userService.GetUserById(ctx.Request.Context(), userId)
+	result, err := c.userService.GetUserByIdOrEmail(ctx.Request.Context(), identifier)
 	if err != nil {
 		res := utils.BuildResponseFailed(dto.MESSAGE_FAILED_GET_USER, err.Error(), nil)
 		ctx.JSON(http.StatusBadRequest, res)

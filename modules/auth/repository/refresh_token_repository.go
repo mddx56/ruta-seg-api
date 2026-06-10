@@ -51,7 +51,7 @@ func (r *refreshTokenRepository) FindByToken(ctx context.Context, tx *gorm.DB, t
 	}
 
 	var refreshToken entities.RefreshToken
-	if err := tx.WithContext(ctx).Where("token = ?", token).Preload("User").Take(&refreshToken).Error; err != nil {
+	if err := tx.WithContext(ctx).Where("token = ? AND expires_at > ?", token, time.Now()).Preload("User").Take(&refreshToken).Error; err != nil {
 		return entities.RefreshToken{}, err
 	}
 

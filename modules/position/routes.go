@@ -7,6 +7,7 @@ import (
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position/repository"
 	positionService "github.com/Caknoooo/go-gin-clean-starter/modules/position/service"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
+	redisProvider "github.com/Caknoooo/go-gin-clean-starter/providers/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do"
 	"gorm.io/gorm"
@@ -15,7 +16,12 @@ import (
 func RegisterRoutes(server *gin.Engine, injector *do.Injector) {
 	do.Provide(injector, func(i *do.Injector) (repository.PositionRepository, error) {
 		db := do.MustInvokeNamed[*gorm.DB](i, constants.DB)
-		return repository.NewPositionRepository(db), nil
+		redisService, _ := do.InvokeNamed[redisProvider.RedisService](i, "Redis")
+		var cache redisProvider.DevicePositionCache
+		if redisService != nil {
+			cache = redisProvider.NewDevicePositionCache(redisService)
+		}
+		return repository.NewPositionRepository(db, cache), nil
 	})
 
 	do.Provide(injector, func(i *do.Injector) (positionService.PositionService, error) {

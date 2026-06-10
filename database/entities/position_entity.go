@@ -41,23 +41,3 @@ func (p *Position) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
-// Hook AfterCreate: Actualiza la tabla caché de la última posición
-func (p *Position) AfterCreate(tx *gorm.DB) (err error) {
-	sql := `
-		INSERT INTO device_last_positions (imei, latitude, longitude, speed, course, device_time, server_time, attributes, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-		ON CONFLICT (imei) DO UPDATE SET
-			latitude    = EXCLUDED.latitude,
-			longitude   = EXCLUDED.longitude,
-			speed       = EXCLUDED.speed,
-			course      = EXCLUDED.course,
-			device_time = EXCLUDED.device_time,
-			server_time = EXCLUDED.server_time,
-			attributes  = EXCLUDED.attributes,
-			updated_at  = NOW()
-	`
-	return tx.Exec(sql, 
-		p.Imei, p.Latitude, p.Longitude, p.Speed, p.Course, 
-		p.DeviceTime, p.ServerTime, p.Attributes,
-	).Error
-}

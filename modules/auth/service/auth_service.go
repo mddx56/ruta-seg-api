@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
+	"math/big"
 	"os"
 	"regexp"
 	"strings"
@@ -29,6 +32,14 @@ import (
 )
 
 const loginMaxAttempts = 5
+
+func generateOTP() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(9000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%04d", n.Int64()+1000), nil
+}
 
 func loginAttemptsKey(identifier string) string {
 	return "login:attempts:" + strings.ToLower(identifier)
@@ -527,26 +538,74 @@ func (s *authService) SendVerificationEmail(ctx context.Context, req userDto.Sen
 		return userDto.ErrAccountAlreadyVerified
 	}
 
-	verificationToken := s.jwtService.GenerateAccessToken(user.ID.String(), "verification")
+	if s.redis == nil {
+		return errors.New("servicio de verificación no disponible")
+	}
 
-	subject := "Email Verification"
-	body := "Please verify your email using this token: " + verificationToken
+	otp, err := generateOTP()
+	if err != nil {
+		return err
+	}
+
+	key := "otp:verification:" + strings.ToLower(req.Email)
+	if err := s.redis.Set(ctx, key, otp, 10*time.Minute); err != nil {
+		return err
+	}
+
+	subject := "Ruta Segura — Verificación de correo electrónico"
+	body := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="es">
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="text-align:center;padding-bottom:24px;">
+              <h2 style="color:#1a1a1a;margin:0;">Ruta Segura</h2>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333333;font-size:15px;line-height:1.6;">
+              <p>Hola <strong>%s</strong>,</p>
+              <p>Tu código de verificación de correo electrónico es:</p>
+              <div style="text-align:center;margin:32px 0;">
+                <span style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#1a1a1a;">%s</span>
+              </div>
+              <p style="color:#888888;font-size:13px;">Este código expira en <strong>10 minutos</strong>.<br>Si no solicitaste esto, ignora este mensaje.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-top:32px;border-top:1px solid #eeeeee;text-align:center;color:#aaaaaa;font-size:12px;">
+              Equipo Ruta Segura
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`, user.Name, otp)
 
 	return utils.SendMail(user.Email, subject, body)
 }
 
 func (s *authService) VerifyEmail(ctx context.Context, req userDto.VerifyEmailRequest) (userDto.VerifyEmailResponse, error) {
-	token, err := s.jwtService.ValidateToken(req.Token)
-	if err != nil || !token.Valid {
-		return userDto.VerifyEmailResponse{}, userDto.ErrTokenInvalid
+	if s.redis == nil {
+		return userDto.VerifyEmailResponse{}, errors.New("servicio de verificación no disponible")
 	}
 
-	userId, err := s.jwtService.GetUserIDByToken(req.Token)
+	key := "otp:verification:" + strings.ToLower(req.Email)
+	storedOTP, err := s.redis.Get(ctx, key)
 	if err != nil {
 		return userDto.VerifyEmailResponse{}, userDto.ErrTokenInvalid
 	}
 
-	user, err := s.userRepository.GetUserById(ctx, s.db, userId)
+	if storedOTP != req.OTP {
+		return userDto.VerifyEmailResponse{}, userDto.ErrTokenInvalid
+	}
+
+	user, err := s.userRepository.GetUserByEmail(ctx, s.db, req.Email)
 	if err != nil {
 		return userDto.VerifyEmailResponse{}, userDto.ErrUserNotFound
 	}
@@ -556,6 +615,8 @@ func (s *authService) VerifyEmail(ctx context.Context, req userDto.VerifyEmailRe
 	if err != nil {
 		return userDto.VerifyEmailResponse{}, err
 	}
+
+	_ = s.redis.Delete(ctx, key)
 
 	return userDto.VerifyEmailResponse{
 		Email:      updatedUser.Email,
@@ -571,8 +632,47 @@ func (s *authService) SendPasswordReset(ctx context.Context, req dto.SendPasswor
 
 	resetToken := s.jwtService.GenerateAccessToken(user.ID.String(), "password_reset")
 
-	subject := "Password Reset"
-	body := "Please reset your password using this token: " + resetToken
+	frontendURL := os.Getenv("FRONTEND_URL")
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, resetToken)
+
+	subject := "Ruta Segura — Restablecimiento de contraseña"
+	body := fmt.Sprintf(`<!DOCTYPE html>
+<html lang="es">
+<body style="font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0;">
+  <table width="100%%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="text-align:center;padding-bottom:24px;">
+              <h2 style="color:#1a1a1a;margin:0;">Ruta Segura</h2>
+            </td>
+          </tr>
+          <tr>
+            <td style="color:#333333;font-size:15px;line-height:1.6;">
+              <p>Hola <strong>%s</strong>,</p>
+              <p>Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón para continuar:</p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="%s" style="background:#e53e3e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:bold;display:inline-block;">
+                  Restablecer contraseña
+                </a>
+              </div>
+              <p style="color:#888888;font-size:13px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+              <p style="word-break:break-all;font-size:12px;color:#aaaaaa;">%s</p>
+              <p style="color:#888888;font-size:13px;">Este enlace expira en <strong>4 horas</strong>.<br>Si no solicitaste esto, ignora este mensaje.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-top:32px;border-top:1px solid #eeeeee;text-align:center;color:#aaaaaa;font-size:12px;">
+              Equipo Ruta Segura
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`, user.Name, resetLink, resetLink)
 
 	return utils.SendMail(user.Email, subject, body)
 }
