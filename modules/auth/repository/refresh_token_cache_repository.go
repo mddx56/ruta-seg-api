@@ -106,6 +106,11 @@ func (r *refreshTokenCacheRepository) DeleteExpired(ctx context.Context, tx *gor
 
 // warmCache guarda el token en Redis con TTL y lo registra en el índice del usuario.
 func (r *refreshTokenCacheRepository) warmCache(ctx context.Context, rt entities.RefreshToken) {
+	// Si el User no fue precargado (ID vacío), no cachear: Status=false causaría
+	// que el siguiente refresh falle con "cuenta desactivada".
+	if rt.User.ID == uuid.Nil {
+		return
+	}
 	ttl := time.Until(rt.ExpiresAt)
 	if ttl <= 0 {
 		return
@@ -155,6 +160,10 @@ func (r *refreshTokenCacheRepository) getFromCache(ctx context.Context, token st
 		return entities.RefreshToken{}, false
 	}
 	if time.Now().After(ct.ExpiresAt) {
+		return entities.RefreshToken{}, false
+	}
+	// Token cacheado sin User (bug previo): forzar fallback a Postgres.
+	if ct.User.ID == "" {
 		return entities.RefreshToken{}, false
 	}
 	tokenID, err := uuid.Parse(ct.ID)
