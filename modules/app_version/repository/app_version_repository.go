@@ -92,7 +92,7 @@ func (r *appVersionRepository) Update(ctx context.Context, tx *gorm.DB, appVersi
 		tx = r.db
 	}
 
-	if err := tx.WithContext(ctx).Updates(&appVersion).Error; err != nil {
+	if err := tx.WithContext(ctx).Save(&appVersion).Error; err != nil {
 		return entities.AppVersion{}, err
 	}
 
