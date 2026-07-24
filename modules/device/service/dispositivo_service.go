@@ -63,19 +63,9 @@ func (s *deviceService) Create(ctx context.Context, req dto.DeviceCreateRequest)
 		return dto.DeviceResponse{}, fmt.Errorf("el IMEI '%s' ya se encuentra registrado en el otro servidor", req.IMEI)
 	}
 
-	// Validar duplicado de SimPhoneNumber (solo si se proporcionó)
-	if req.SimPhoneNumber != nil && *req.SimPhoneNumber != "" {
-		if _, err := s.repo.FindBySimPhoneNumber(ctx, *req.SimPhoneNumber); err == nil {
-			return dto.DeviceResponse{}, fmt.Errorf("el número de SIM '%s' ya está en uso por otro dispositivo", *req.SimPhoneNumber)
-		}
-	}
-
-	// Validar duplicado de cod_sim (SimICCID)
-	if req.SimICCID != nil && *req.SimICCID != "" {
-		if _, err := s.repo.FindByCodSim(ctx, *req.SimICCID); err == nil {
-			return dto.DeviceResponse{}, fmt.Errorf("el código SIM '%s' ya está en uso por otro dispositivo", *req.SimICCID)
-		}
-	}
+	// Nota: no se valida duplicado de SimPhoneNumber/SimICCID.
+	// Una misma línea/chip puede usarse en distintos dispositivos (p.ej. al
+	// reemplazar un GPS dañado se reutiliza la misma línea en el nuevo equipo).
 
 	// Sanitizar campos opcionales: convertir cadenas vacías a nil
 	sanitizeStringPtr := func(s *string) *string {
@@ -126,12 +116,7 @@ func (s *deviceService) Update(ctx context.Context, req dto.DeviceUpdateRequest)
 		device.SimPhoneNumber = req.SimPhoneNumber
 	}
 	if req.SimICCID != nil {
-		// Validar duplicado de cod_sim solo si cambió
-		if *req.SimICCID != "" && (device.SimICCID == nil || *device.SimICCID != *req.SimICCID) {
-			if existing, err := s.repo.FindByCodSim(ctx, *req.SimICCID); err == nil && existing.IMEI != device.IMEI {
-				return dto.DeviceResponse{}, fmt.Errorf("el código SIM '%s' ya está en uso por el dispositivo '%s'", *req.SimICCID, existing.IMEI)
-			}
-		}
+		// Una misma línea/chip puede reutilizarse en otro dispositivo, no se valida duplicado.
 		device.SimICCID = req.SimICCID
 	}
 	if req.SimProvider != nil {
