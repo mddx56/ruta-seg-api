@@ -23,6 +23,7 @@ var upgrader = gorillaWs.Upgrader{
 
 type RealtimeController interface {
 	ServeWS(ctx *gin.Context)
+	ServePublicWS(ctx *gin.Context)
 }
 
 type realtimeController struct {
@@ -82,6 +83,36 @@ func (c *realtimeController) ServeWS(ctx *gin.Context) {
 
 	// Allow collection of memory referenced by the caller by doing all work in new goroutines.
 	// The hub/pump goroutines own the connection lifetime from here on.
+	go client.WritePump()
+	go client.ReadPump()
+}
+
+// ServePublicWS expone un canal de solo lectura, sin autenticación, para clientes
+// públicos (pantalla TV, app pública) que quieren ver los micros en vivo de una ruta.
+// Con ?route_id=<uuid> se suscribe solo a esa ruta; sin ese parámetro, recibe los
+// eventos de todas las rutas (topic "route:all").
+func (c *realtimeController) ServePublicWS(ctx *gin.Context) {
+	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
+	if err != nil {
+		log.Println("ws upgrade error:", err)
+		return
+	}
+
+	topic := websocket.TopicAll
+	if routeID := ctx.Query("route_id"); routeID != "" {
+		topic = "route:" + routeID
+	}
+
+	client := &websocket.Client{
+		Hub:   c.wsService.GetHub(),
+		Conn:  conn,
+		Role:  "public",
+		Topic: topic,
+		Send:  make(chan []byte, 256),
+	}
+
+	client.Hub.Register <- client
+
 	go client.WritePump()
 	go client.ReadPump()
 }

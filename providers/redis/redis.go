@@ -19,6 +19,9 @@ type RedisService interface {
 	GetInt(ctx context.Context, key string) (count int64, exists bool, err error)
 	// IncrWithTTL incrementa el contador y renueva el TTL en un pipeline atómico (ventana deslizante).
 	IncrWithTTL(ctx context.Context, key string, expiration time.Duration) (int64, error)
+	// Publish emite payload en un canal Pub/Sub, usado para propagar eventos en tiempo
+	// real entre instancias del servidor (ver providers/websocket/route_events.go).
+	Publish(ctx context.Context, channel string, payload []byte) error
 	Client() *redis.Client // Expone el cliente en crudo para operaciones complejas como Pub/Sub
 }
 
@@ -86,6 +89,10 @@ func (r *redisService) IncrWithTTL(ctx context.Context, key string, expiration t
 		return 0, err
 	}
 	return incrCmd.Val(), nil
+}
+
+func (r *redisService) Publish(ctx context.Context, channel string, payload []byte) error {
+	return r.client.Publish(ctx, channel, payload).Err()
 }
 
 func (r *redisService) Client() *redis.Client {

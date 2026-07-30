@@ -34,6 +34,11 @@ type Client struct {
 	// Role, if needed
 	Role string
 
+	// Topic, si no está vacío, marca este cliente como un suscriptor público (sin
+	// autenticación) de un canal por tema (p.ej. "route:<routeID>"), en vez de un
+	// cliente autenticado ruteado por UserID.
+	Topic string
+
 	// Buffered channel of outbound messages.
 	Send chan []byte
 }

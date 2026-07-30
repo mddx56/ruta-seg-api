@@ -6,6 +6,10 @@ import (
 )
 
 func Migrate(db *gorm.DB) error {
+	if err := db.Exec("CREATE SCHEMA IF NOT EXISTS micros").Error; err != nil {
+		return err
+	}
+
 	if err := db.AutoMigrate(
 		&entities.Migration{},
 		&entities.User{},
@@ -26,6 +30,16 @@ func Migrate(db *gorm.DB) error {
 		&entities.LogSocket{},
 		&entities.AppVersion{},
 		&entities.DeviceLastPosition{}, // Caché de última posición por device
+		&entities.Route{},
+		&entities.RouteStop{},
+		&entities.VehicleRoute{},
+		&entities.Lap{},
+		&entities.RouteFare{},
+		&entities.LapCharge{},
+		&entities.FineType{},
+		&entities.Fine{},
+		&entities.UserDeviceToken{},
+		&entities.Notification{},
 	); err != nil {
 		return err
 	}

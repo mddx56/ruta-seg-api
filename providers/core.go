@@ -1,6 +1,8 @@
 package providers
 
 import (
+	"context"
+	"errors"
 	"os"
 
 	"github.com/Caknoooo/go-gin-clean-starter/config"
@@ -11,10 +13,12 @@ import (
 	diRepo "github.com/Caknoooo/go-gin-clean-starter/modules/device_installation/repository"
 	groupRepo "github.com/Caknoooo/go-gin-clean-starter/modules/group/repository"
 	healthController "github.com/Caknoooo/go-gin-clean-starter/modules/health/controller"
+	notificationService "github.com/Caknoooo/go-gin-clean-starter/modules/notification/service"
 	userController "github.com/Caknoooo/go-gin-clean-starter/modules/user/controller"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/user/repository"
 	userService "github.com/Caknoooo/go-gin-clean-starter/modules/user/service"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
+	"github.com/Caknoooo/go-gin-clean-starter/pkg/fcm"
 	redisProvider "github.com/Caknoooo/go-gin-clean-starter/providers/redis"
 	"github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
 	"github.com/samber/do"
@@ -84,6 +88,39 @@ func RegisterDependencies(injector *do.Injector) {
 		wsService := websocket.NewWebsocketService(hub)
 		// Run hub in background
 		go wsService.RunHub()
+
+		// Si Redis está disponible, escucha el canal de eventos de rutas y los reenvía
+		// al hub local (así el canal público de WS funciona igual con varias instancias).
+		if redisSvc, err := do.InvokeNamed[redisProvider.RedisService](i, "Redis"); err == nil {
+			go websocket.StartRouteEventSubscriber(context.Background(), redisSvc, hub)
+		}
+
 		return wsService, nil
+	})
+
+	// RouteEventPublisher: usado por el motor de reglas (lap/fine) para publicar
+	// posiciones en vivo y eventos de vuelta al canal público de micros en ruta.
+	do.Provide(injector, func(i *do.Injector) (websocket.RouteEventPublisher, error) {
+		redisSvc, err := do.InvokeNamed[redisProvider.RedisService](i, "Redis")
+		if err != nil {
+			return nil, err
+		}
+		return websocket.NewRouteEventPublisher(redisSvc), nil
+	})
+
+	// FCM PushSender: opcional. Si no hay credenciales configuradas (FCM_CREDENTIALS_FILE
+	// o FCM_CREDENTIALS_JSON), los módulos que lo usan (notification) simplemente no envían
+	// push y siguen funcionando (persistencia + WebSocket siguen intactos).
+	do.Provide(injector, func(i *do.Injector) (notificationService.PushSender, error) {
+		ctx := context.Background()
+
+		if raw := os.Getenv("FCM_CREDENTIALS_JSON"); raw != "" {
+			return fcm.NewClientFromJSON(ctx, []byte(raw))
+		}
+		if path := os.Getenv("FCM_CREDENTIALS_FILE"); path != "" {
+			return fcm.NewClientFromFile(ctx, path)
+		}
+
+		return nil, errors.New("FCM no configurado: falta FCM_CREDENTIALS_FILE o FCM_CREDENTIALS_JSON")
 	})
 }

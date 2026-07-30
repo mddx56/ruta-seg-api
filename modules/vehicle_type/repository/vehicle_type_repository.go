@@ -16,6 +16,7 @@ type VehicleTypeRepository interface {
 	ChangeStatus(ctx context.Context, id uuid.UUID) error
 	FindAll(ctx context.Context) ([]entities.VehicleType, error)
 	FindByID(ctx context.Context, id uuid.UUID) (entities.VehicleType, error)
+	FindByCode(ctx context.Context, code string) (entities.VehicleType, error)
 }
 
 type vehicleTypeRepository struct {
@@ -38,7 +39,7 @@ func (r *vehicleTypeRepository) Update(ctx context.Context, vehicleType *entitie
 	// This prevents GORM from trying to update preloaded associations
 	return r.db.WithContext(ctx).
 		Model(vehicleType).
-		Select("type_name", "updated_at").
+		Select("type_name", "code", "updated_at").
 		Updates(vehicleType).Error
 }
 
@@ -55,5 +56,11 @@ func (r *vehicleTypeRepository) FindAll(ctx context.Context) ([]entities.Vehicle
 func (r *vehicleTypeRepository) FindByID(ctx context.Context, id uuid.UUID) (entities.VehicleType, error) {
 	var vehicleType entities.VehicleType
 	err := r.db.WithContext(ctx).Where("status = ?", true).First(&vehicleType, id).Error
+	return vehicleType, err
+}
+
+func (r *vehicleTypeRepository) FindByCode(ctx context.Context, code string) (entities.VehicleType, error) {
+	var vehicleType entities.VehicleType
+	err := r.db.WithContext(ctx).Where("status = ? AND code = ?", true, code).First(&vehicleType).Error
 	return vehicleType, err
 }

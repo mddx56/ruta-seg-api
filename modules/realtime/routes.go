@@ -17,5 +17,8 @@ func RegisterRoutes(server *gin.Engine, injector *do.Injector) {
 	routes := server.Group("/api/realtime")
 	{
 		routes.GET("/ws", realtimeController.ServeWS)
+		// Público, sin autenticación: usado por la pantalla TV y la app pública para
+		// ver los micros en vivo de una ruta (?route_id=<uuid>) o de todas.
+		routes.GET("/public/ws", realtimeController.ServePublicWS)
 	}
 }

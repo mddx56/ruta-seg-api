@@ -10,5 +10,13 @@ func Seeder(db *gorm.DB) error {
 		return err
 	}
 
+	if err := seeds.RouteSeeder(db); err != nil {
+		return err
+	}
+
+	if err := seeds.FineTypeSeeder(db); err != nil {
+		return err
+	}
+
 	return nil
 }

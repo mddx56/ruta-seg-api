@@ -15,15 +15,18 @@ const (
 )
 
 type VehicleTypeCreateRequest struct {
-	TypeName string `json:"name" binding:"required"`
+	TypeName string  `json:"name" binding:"required"`
+	Code     *string `json:"code" binding:"omitempty,max=8"`
 }
 
 type VehicleTypeUpdateRequest struct {
 	ID       uuid.UUID `json:"id" binding:"required"`
 	TypeName string    `json:"name" binding:"omitempty"`
+	Code     *string   `json:"code" binding:"omitempty,max=8"`
 }
 
 type VehicleTypeResponse struct {
 	ID       uuid.UUID `json:"id"`
 	TypeName string    `json:"name"`
+	Code     *string   `json:"code,omitempty"`
 }

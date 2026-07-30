@@ -16,6 +16,7 @@ type VehicleTypeService interface {
 	ChangeStatus(ctx context.Context, id uuid.UUID) error
 	FindAll(ctx context.Context) ([]dto.VehicleTypeResponse, error)
 	FindByID(ctx context.Context, id uuid.UUID) (dto.VehicleTypeResponse, error)
+	FindByCode(ctx context.Context, code string) (dto.VehicleTypeResponse, error)
 }
 
 type vehicleTypeService struct {
@@ -32,6 +33,7 @@ func NewVehicleTypeService(injector *do.Injector) (VehicleTypeService, error) {
 func (s *vehicleTypeService) Create(ctx context.Context, req dto.VehicleTypeCreateRequest) (dto.VehicleTypeResponse, error) {
 	vehicleType := entities.VehicleType{
 		TypeName: req.TypeName,
+		Code:     req.Code,
 	}
 
 	if err := s.repo.Create(ctx, &vehicleType); err != nil {
@@ -41,6 +43,7 @@ func (s *vehicleTypeService) Create(ctx context.Context, req dto.VehicleTypeCrea
 	return dto.VehicleTypeResponse{
 		ID:       vehicleType.ID,
 		TypeName: vehicleType.TypeName,
+		Code:     vehicleType.Code,
 	}, nil
 }
 
@@ -54,6 +57,10 @@ func (s *vehicleTypeService) Update(ctx context.Context, req dto.VehicleTypeUpda
 		vehicleType.TypeName = req.TypeName
 	}
 
+	if req.Code != nil {
+		vehicleType.Code = req.Code
+	}
+
 	if err := s.repo.Update(ctx, &vehicleType); err != nil {
 		return dto.VehicleTypeResponse{}, err
 	}
@@ -61,6 +68,7 @@ func (s *vehicleTypeService) Update(ctx context.Context, req dto.VehicleTypeUpda
 	return dto.VehicleTypeResponse{
 		ID:       vehicleType.ID,
 		TypeName: vehicleType.TypeName,
+		Code:     vehicleType.Code,
 	}, nil
 }
 
@@ -79,6 +87,7 @@ func (s *vehicleTypeService) FindAll(ctx context.Context) ([]dto.VehicleTypeResp
 		responses = append(responses, dto.VehicleTypeResponse{
 			ID:       vt.ID,
 			TypeName: vt.TypeName,
+			Code:     vt.Code,
 		})
 	}
 
@@ -94,5 +103,19 @@ func (s *vehicleTypeService) FindByID(ctx context.Context, id uuid.UUID) (dto.Ve
 	return dto.VehicleTypeResponse{
 		ID:       vehicleType.ID,
 		TypeName: vehicleType.TypeName,
+		Code:     vehicleType.Code,
+	}, nil
+}
+
+func (s *vehicleTypeService) FindByCode(ctx context.Context, code string) (dto.VehicleTypeResponse, error) {
+	vehicleType, err := s.repo.FindByCode(ctx, code)
+	if err != nil {
+		return dto.VehicleTypeResponse{}, err
+	}
+
+	return dto.VehicleTypeResponse{
+		ID:       vehicleType.ID,
+		TypeName: vehicleType.TypeName,
+		Code:     vehicleType.Code,
 	}, nil
 }

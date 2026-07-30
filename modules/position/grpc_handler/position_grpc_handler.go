@@ -3,12 +3,15 @@ package grpc_handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
+	lapservice "github.com/Caknoooo/go-gin-clean-starter/modules/lap/service"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position/dto"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position/service"
 	pb "github.com/Caknoooo/go-gin-clean-starter/pkg/pb/position_proto"
 	providerWS "github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -16,13 +19,15 @@ type PositionGRPCHandler struct {
 	pb.UnimplementedPositionServiceServer
 	positionService service.PositionService
 	wsService       providerWS.WebsocketService
+	lapService      lapservice.LapService
 	db              *gorm.DB
 }
 
-func NewPositionGRPCHandler(s service.PositionService, wsSvc providerWS.WebsocketService, db *gorm.DB) *PositionGRPCHandler {
+func NewPositionGRPCHandler(s service.PositionService, wsSvc providerWS.WebsocketService, lapSvc lapservice.LapService, db *gorm.DB) *PositionGRPCHandler {
 	return &PositionGRPCHandler{
 		positionService: s,
 		wsService:       wsSvc,
+		lapService:      lapSvc,
 		db:              db,
 	}
 }
@@ -102,6 +107,27 @@ func (h *PositionGRPCHandler) SavePosition(ctx context.Context, req *pb.SavePosi
 			Ignition:   parsedAttrs.ignition,
 			Satellites: parsedAttrs.satellites,
 		})
+	}
+
+	// Motor de vueltas (Fase 2): evalúa si esta posición cierra/abre una vuelta.
+	if h.lapService != nil {
+		var vehicleIDs []uuid.UUID
+		tx := h.db.WithContext(ctx).
+			Table("device_installations").
+			Select("vehicles.id").
+			Joins("JOIN vehicles ON vehicles.id = device_installations.vehicle_id").
+			Where("device_installations.imei = ? AND device_installations.removed_at IS NULL AND device_installations.status = ?", req.Imei, true).
+			Limit(1).
+			Pluck("vehicles.id", &vehicleIDs)
+
+		if tx.Error == nil && len(vehicleIDs) > 0 {
+			vehicleID := vehicleIDs[0]
+			go func() {
+				if err := h.lapService.EvaluatePosition(context.Background(), vehicleID, result.Latitude, result.Longitude, result.Speed, result.DeviceTime); err != nil {
+					log.Printf("[lap-engine] error evaluando posición del vehículo %s: %v", vehicleID, err)
+				}
+			}()
+		}
 	}
 
 	return &pb.SavePositionResponse{

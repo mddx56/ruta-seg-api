@@ -16,6 +16,7 @@ type ModelRepository interface {
 	ChangeStatus(ctx context.Context, id uuid.UUID) error
 	FindAll(ctx context.Context) ([]entities.Model, error)
 	FindByID(ctx context.Context, id uuid.UUID) (entities.Model, error)
+	FindByNameAndMakeID(ctx context.Context, name string, makeID uuid.UUID) (entities.Model, error)
 }
 
 type modelRepository struct {
@@ -63,5 +64,15 @@ func (r *modelRepository) FindByID(ctx context.Context, id uuid.UUID) (entities.
 		Preload("Make").
 		Where("status = ?", true).
 		First(&model, id).Error
+	return model, err
+}
+
+func (r *modelRepository) FindByNameAndMakeID(ctx context.Context, name string, makeID uuid.UUID) (entities.Model, error) {
+	var model entities.Model
+	err := r.db.WithContext(ctx).
+		Preload("VehicleType").
+		Preload("Make").
+		Where("status = ? AND make_id = ? AND model_name = ?", true, makeID, name).
+		First(&model).Error
 	return model, err
 }

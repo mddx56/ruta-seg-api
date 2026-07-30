@@ -1,21 +1,25 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 	deviceDto "github.com/Caknoooo/go-gin-clean-starter/modules/device/dto"
+	lapservice "github.com/Caknoooo/go-gin-clean-starter/modules/lap/service"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position/dto"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position/service"
+	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/utils"
 	providerWS "github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/samber/do"
 	"gorm.io/gorm"
-	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
-	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 )
 
 type PositionController interface {
@@ -34,16 +38,19 @@ type PositionController interface {
 type positionController struct {
 	positionService service.PositionService
 	wsService       providerWS.WebsocketService
+	lapService      lapservice.LapService
 	db              *gorm.DB
 }
 
 func NewPositionController(injector *do.Injector, ps service.PositionService) PositionController {
 	db := do.MustInvokeNamed[*gorm.DB](injector, constants.DB)
-	// WS is optional: if not registered yet, don't crash
+	// WS y Lap son opcionales: si no están registrados todavía, no debe fallar
 	wsSvc, _ := do.Invoke[providerWS.WebsocketService](injector)
+	lapSvc, _ := do.Invoke[lapservice.LapService](injector)
 	return &positionController{
 		positionService: ps,
 		wsService:       wsSvc,
+		lapService:      lapSvc,
 		db:              db,
 	}
 }
@@ -76,7 +83,7 @@ func (c *positionController) CreatePosition(ctx *gin.Context) {
 	// Broadcast to relevant WebSocket clients and admins (non-blocking)
 	if c.wsService != nil {
 		var userIDs []string
-		
+
 		// Obtener directamente solo a los dueños del vehículo donde está el GPS instalado
 		c.db.WithContext(ctx.Request.Context()).
 			Table("device_installations").
@@ -98,6 +105,27 @@ func (c *positionController) CreatePosition(ctx *gin.Context) {
 			Ignition:   parsedAttrs.ignition,
 			Satellites: parsedAttrs.satellites,
 		})
+	}
+
+	// Motor de vueltas (Fase 2): evalúa si esta posición cierra/abre una vuelta.
+	if c.lapService != nil {
+		var vehicleIDs []uuid.UUID
+		tx := c.db.WithContext(ctx.Request.Context()).
+			Table("device_installations").
+			Select("vehicles.id").
+			Joins("JOIN vehicles ON vehicles.id = device_installations.vehicle_id").
+			Where("device_installations.imei = ? AND device_installations.removed_at IS NULL AND device_installations.status = ?", req.Imei, true).
+			Limit(1).
+			Pluck("vehicles.id", &vehicleIDs)
+
+		if tx.Error == nil && len(vehicleIDs) > 0 {
+			vehicleID := vehicleIDs[0]
+			go func() {
+				if err := c.lapService.EvaluatePosition(context.Background(), vehicleID, result.Latitude, result.Longitude, result.Speed, result.DeviceTime); err != nil {
+					log.Printf("[lap-engine] error evaluando posición del vehículo %s: %v", vehicleID, err)
+				}
+			}()
+		}
 	}
 
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_CREATE_POSITION, result)

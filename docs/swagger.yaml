@@ -147,6 +147,59 @@ definitions:
     required:
     - imei
     type: object
+  dto.FineVoidRequest:
+    properties:
+      notes:
+        type: string
+    type: object
+  dto.GeofenceCreateRequest:
+    properties:
+      name:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/dto.GeofencePointRequest'
+        minItems: 1
+        type: array
+      radius:
+        type: number
+      type:
+        enum:
+        - CIRCLE
+        - POLYGON
+        type: string
+    required:
+    - name
+    - points
+    - type
+    type: object
+  dto.GeofencePointRequest:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      sequence:
+        type: integer
+    type: object
+  dto.GeofenceUpdateRequest:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      points:
+        items:
+          $ref: '#/definitions/dto.GeofencePointRequest'
+        type: array
+      radius:
+        type: number
+      type:
+        enum:
+        - CIRCLE
+        - POLYGON
+        type: string
+    type: object
   dto.GroupAssignDeviceRequest:
     properties:
       device_imei:
@@ -249,6 +302,55 @@ definitions:
     required:
     - refresh_token
     type: object
+  dto.RegisterDeviceTokenRequest:
+    properties:
+      platform:
+        enum:
+        - android
+        - ios
+        type: string
+      token:
+        type: string
+    required:
+    - platform
+    - token
+    type: object
+  dto.RegisterMicroRequest:
+    properties:
+      chasis:
+        type: string
+      color:
+        type: string
+      description:
+        type: string
+      km_liter:
+        type: number
+      make_id:
+        description: '...o crear uno nuevo (o reusar uno con el mismo nombre+marca)
+          bajo el VehicleType "BUS"'
+        type: string
+      model_id:
+        description: Usar un Model ya existente...
+        type: string
+      model_name:
+        type: string
+      photo_url:
+        type: string
+      pin_number:
+        type: string
+      placa:
+        type: string
+      route_id:
+        description: Asignación a ruta, opcional (se puede hacer después vía /api/vehicle-routes)
+        type: string
+      user_id:
+        type: string
+      year:
+        type: integer
+    required:
+    - placa
+    - user_id
+    type: object
   dto.ResetPasswordRequest:
     properties:
       new_password:
@@ -259,6 +361,92 @@ definitions:
     required:
     - new_password
     - token
+    type: object
+  dto.RouteCreateRequest:
+    properties:
+      allowed_lap_duration_seconds:
+        type: integer
+      checkpoint_geofence_id:
+        type: string
+      description:
+        type: string
+      geometry:
+        type: string
+      map_color:
+        type: string
+      max_speed_kmh:
+        type: integer
+      max_stop_duration_seconds:
+        type: integer
+      name:
+        type: string
+      stops:
+        items:
+          $ref: '#/definitions/dto.RouteStopRequest'
+        type: array
+    required:
+    - name
+    type: object
+  dto.RouteFareCreateRequest:
+    properties:
+      amount_per_lap:
+        type: number
+      effective_from:
+        type: string
+      route_id:
+        type: string
+    required:
+    - amount_per_lap
+    - route_id
+    type: object
+  dto.RouteFareUpdateRequest:
+    properties:
+      amount_per_lap:
+        type: number
+      effective_from:
+        type: string
+      id:
+        type: string
+    type: object
+  dto.RouteStopRequest:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      sequence:
+        type: integer
+    required:
+    - name
+    type: object
+  dto.RouteUpdateRequest:
+    properties:
+      active:
+        type: boolean
+      allowed_lap_duration_seconds:
+        type: integer
+      checkpoint_geofence_id:
+        type: string
+      description:
+        type: string
+      geometry:
+        type: string
+      id:
+        type: string
+      map_color:
+        type: string
+      max_speed_kmh:
+        type: integer
+      max_stop_duration_seconds:
+        type: integer
+      name:
+        type: string
+      stops:
+        items:
+          $ref: '#/definitions/dto.RouteStopRequest'
+        type: array
     type: object
   dto.SendPasswordResetRequest:
     properties:
@@ -273,6 +461,13 @@ definitions:
         type: string
     required:
     - email
+    type: object
+  dto.UnregisterDeviceTokenRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
     type: object
   dto.UserBlockRequest:
     properties:
@@ -318,7 +513,6 @@ definitions:
     - email
     - name
     - password
-    - username
     type: object
   dto.UserLoginRequest:
     properties:
@@ -388,8 +582,37 @@ definitions:
     - placa
     - user_id
     type: object
+  dto.VehicleRouteCreateRequest:
+    properties:
+      assigned_at:
+        type: string
+      pin_number:
+        type: string
+      route_id:
+        type: string
+      vehicle_id:
+        type: string
+    required:
+    - pin_number
+    - route_id
+    - vehicle_id
+    type: object
+  dto.VehicleRouteUpdateRequest:
+    properties:
+      active:
+        type: boolean
+      id:
+        type: string
+      pin_number:
+        type: string
+      route_id:
+        type: string
+    type: object
   dto.VehicleTypeCreateRequest:
     properties:
+      code:
+        maxLength: 8
+        type: string
       name:
         type: string
     required:
@@ -397,6 +620,9 @@ definitions:
     type: object
   dto.VehicleTypeUpdateRequest:
     properties:
+      code:
+        maxLength: 8
+        type: string
       id:
         type: string
       name:
@@ -431,10 +657,13 @@ definitions:
     type: object
   dto.VerifyEmailRequest:
     properties:
-      token:
+      email:
+        type: string
+      otp:
         type: string
     required:
-    - token
+    - email
+    - otp
     type: object
   utils.Response:
     properties:
@@ -457,9 +686,47 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: RutaSegura Api
+  title: RutaSegura API
   version: 0.1.2
 paths:
+  /api/auth/google:
+    get:
+      description: Redirige al usuario al consent screen de Google OAuth
+      responses:
+        "307":
+          description: Temporary Redirect
+      summary: Iniciar login con Google
+      tags:
+      - auth
+  /api/auth/google/callback:
+    get:
+      description: Procesa el codigo de Google, crea o busca el usuario y retorna
+        tokens JWT
+      parameters:
+      - description: Authorization code de Google
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State para validacion CSRF
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Callback de Google OAuth
+      tags:
+      - auth
   /api/auth/login:
     post:
       consumes:
@@ -639,6 +906,33 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Send verification email
+      tags:
+      - auth
+  /api/auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Registra un nuevo usuario con rol de usuario normal (sin autenticación
+        requerida)
+      parameters:
+      - description: Signup Request
+        in: body
+        name: signup
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Registro de usuario normal
       tags:
       - auth
   /api/auth/verify-email:
@@ -1321,6 +1615,273 @@ paths:
       summary: Get simple list of devices
       tags:
       - devices
+  /api/fine-types:
+    get:
+      consumes:
+      - application/json
+      description: Get the catalog of fine types (overtaking, lap time, prolonged
+        stop, speeding)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all fine types
+      tags:
+      - fines
+  /api/fines:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all fines generated for micros (automatic or manual)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all fines (admin)
+      tags:
+      - fines
+  /api/fines/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a fine by ID, including its fine type
+      parameters:
+      - description: Fine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a fine by ID
+      tags:
+      - fines
+  /api/fines/{id}/void:
+    patch:
+      consumes:
+      - application/json
+      description: Mark a fine as voided after human review (admin only)
+      parameters:
+      - description: Fine ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Void reason
+        in: body
+        name: fine
+        schema:
+          $ref: '#/definitions/dto.FineVoidRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Void a fine
+      tags:
+      - fines
+  /api/fines/mine:
+    get:
+      consumes:
+      - application/json
+      description: Get the fines generated for the authenticated user's own vehicles
+        (rol Dueño)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List my fines
+      tags:
+      - fines
+  /api/geofences:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all active geofences with their points
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all geofences
+      tags:
+      - geofences
+    post:
+      consumes:
+      - application/json
+      description: Create a new geofence (circle or polygon) with its ordered points
+      parameters:
+      - description: Geofence Create Request
+        in: body
+        name: geofence
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GeofenceCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new geofence
+      tags:
+      - geofences
+  /api/geofences/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a geofence with its points by ID
+      parameters:
+      - description: Geofence ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a geofence by ID
+      tags:
+      - geofences
+    put:
+      consumes:
+      - application/json
+      description: Update an existing geofence; if points is present, it fully replaces
+        the existing point list
+      parameters:
+      - description: Geofence ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Geofence Update Request
+        in: body
+        name: geofence
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GeofenceUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update an existing geofence
+      tags:
+      - geofences
+  /api/geofences/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Toggle the status of a geofence
+      parameters:
+      - description: Geofence ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Change status of a geofence (soft delete)
+      tags:
+      - geofences
   /api/group:
     get:
       consumes:
@@ -1405,6 +1966,54 @@ paths:
       summary: Remove a device from a group
       tags:
       - groups
+  /api/laps:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all laps recorded by the lap-counting engine
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all laps
+      tags:
+      - laps
+  /api/laps/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a lap by ID
+      parameters:
+      - description: Lap ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a lap by ID
+      tags:
+      - laps
   /api/log-socket:
     get:
       consumes:
@@ -1747,6 +2356,119 @@ paths:
       summary: Change status a model (soft delete)
       tags:
       - models
+  /api/notifications:
+    get:
+      consumes:
+      - application/json
+      description: Get the authenticated user's notification history
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List my notifications
+      tags:
+      - notifications
+  /api/notifications/{id}/read:
+    patch:
+      consumes:
+      - application/json
+      description: Mark one of the authenticated user's notifications as read
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Mark a notification as read
+      tags:
+      - notifications
+  /api/notifications/device-tokens:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a device token (e.g. on logout) so it stops receiving push
+        notifications
+      parameters:
+      - description: Device Token
+        in: body
+        name: device_token
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UnregisterDeviceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Unregister a push notification device token
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      description: Register (or reassign) the FCM token of the authenticated user's
+        mobile device
+      parameters:
+      - description: Device Token
+        in: body
+        name: device_token
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterDeviceTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Register a push notification device token
+      tags:
+      - notifications
   /api/positions:
     post:
       consumes:
@@ -1994,6 +2716,361 @@ paths:
       summary: Get device route history (Replay)
       tags:
       - positions
+  /api/route-fares:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all active route fares
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all route fares
+      tags:
+      - route-fares
+    post:
+      consumes:
+      - application/json
+      description: Set the amount charged per completed lap on a route, effective
+        from a given date
+      parameters:
+      - description: Route Fare Create Request
+        in: body
+        name: route_fare
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RouteFareCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new route fare
+      tags:
+      - route-fares
+  /api/route-fares/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a route fare by ID
+      parameters:
+      - description: Route Fare ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a route fare by ID
+      tags:
+      - route-fares
+    put:
+      consumes:
+      - application/json
+      description: Update the amount or effective date of an existing route fare
+      parameters:
+      - description: Route Fare ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Route Fare Update Request
+        in: body
+        name: route_fare
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RouteFareUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update an existing route fare
+      tags:
+      - route-fares
+  /api/route-fares/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Toggle the status of a route fare
+      parameters:
+      - description: Route Fare ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Change status of a route fare (soft delete)
+      tags:
+      - route-fares
+  /api/routes:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all active routes with their stops (public, no auth
+        required)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all routes
+      tags:
+      - routes
+    post:
+      consumes:
+      - application/json
+      description: Create a new bus route (line), optionally with its stops and GeoJSON
+        geometry
+      parameters:
+      - description: Route Create Request
+        in: body
+        name: route
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RouteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new route
+      tags:
+      - routes
+  /api/routes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a route with its stops and geometry by ID (public, no auth
+        required)
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a route by ID
+      tags:
+      - routes
+    put:
+      consumes:
+      - application/json
+      description: Update an existing route; if stops is present, it fully replaces
+        the existing stop list
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Route Update Request
+        in: body
+        name: route
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RouteUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update an existing route
+      tags:
+      - routes
+  /api/routes/{id}/eta:
+    get:
+      consumes:
+      - application/json
+      description: Get the estimated time of arrival of each live vehicle on a route
+        to the queried lat/lon, sorted soonest-first (public, no auth required)
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Latitude of the query point
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude of the query point
+        in: query
+        name: lon
+        required: true
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Estimate arrival time of live vehicles to a point
+      tags:
+      - routes
+  /api/routes/{id}/live:
+    get:
+      consumes:
+      - application/json
+      description: Get the micros currently "en ruta" (recent position) for a route,
+        with their pin, position and lap info (public, no auth required)
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List live vehicles on a route
+      tags:
+      - routes
+  /api/routes/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Toggle the status of a route
+      parameters:
+      - description: Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Change status of a route (soft delete)
+      tags:
+      - routes
   /api/user:
     get:
       consumes:
@@ -2067,9 +3144,9 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get user details by user ID
+      description: Get user details by user ID (UUID) or email address
       parameters:
-      - description: User ID
+      - description: User ID (UUID) or email
         in: path
         name: id
         required: true
@@ -2087,7 +3164,7 @@ paths:
             $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
-      summary: Get user by ID
+      summary: Get user by ID or email
       tags:
       - user
     put:
@@ -2338,6 +3415,174 @@ paths:
       summary: List simple users
       tags:
       - user
+  /api/vehicle-routes:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all active vehicle-route assignments
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all vehicle-route assignments
+      tags:
+      - vehicle-routes
+    post:
+      consumes:
+      - application/json
+      description: Assign a micro (vehicle) to a route, with the pin number shown
+        on the map
+      parameters:
+      - description: Vehicle Route Create Request
+        in: body
+        name: vehicle_route
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VehicleRouteCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Assign a vehicle to a route
+      tags:
+      - vehicle-routes
+  /api/vehicle-routes/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a vehicle-route assignment by ID
+      parameters:
+      - description: Vehicle Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a vehicle-route assignment by ID
+      tags:
+      - vehicle-routes
+    put:
+      consumes:
+      - application/json
+      description: Update the route, pin number or active flag of an existing assignment
+      parameters:
+      - description: Vehicle Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Vehicle Route Update Request
+        in: body
+        name: vehicle_route
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VehicleRouteUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update a vehicle-route assignment
+      tags:
+      - vehicle-routes
+  /api/vehicle-routes/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Toggle the status of a vehicle-route assignment
+      parameters:
+      - description: Vehicle Route ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Change status of a vehicle-route assignment (soft delete)
+      tags:
+      - vehicle-routes
+  /api/vehicle-routes/register-micro:
+    post:
+      consumes:
+      - application/json
+      description: Creates (or reuses) the Model under VehicleType code=BUS, creates
+        the Vehicle, and optionally assigns it to a route with a pin number
+      parameters:
+      - description: Register Micro Request
+        in: body
+        name: micro
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterMicroRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Register a microbus in one call
+      tags:
+      - vehicle-routes
   /api/vehicle-types:
     get:
       consumes:

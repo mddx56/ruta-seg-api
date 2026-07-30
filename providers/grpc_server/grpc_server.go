@@ -7,6 +7,7 @@ import (
 	"github.com/Caknoooo/go-gin-clean-starter/modules/device/grpc_handler"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/device/service"
 
+	lap_service "github.com/Caknoooo/go-gin-clean-starter/modules/lap/service"
 	pos_handler "github.com/Caknoooo/go-gin-clean-starter/modules/position/grpc_handler"
 	pos_service "github.com/Caknoooo/go-gin-clean-starter/modules/position/service"
 
@@ -14,11 +15,11 @@ import (
 	pbPosition "github.com/Caknoooo/go-gin-clean-starter/pkg/pb/position_proto"
 
 	providerWS "github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
-	"gorm.io/gorm"
 	"google.golang.org/grpc"
+	"gorm.io/gorm"
 )
 
-func StartGRPCServer(devService service.DeviceService, posService pos_service.PositionService, wsService providerWS.WebsocketService, db *gorm.DB, port string) {
+func StartGRPCServer(devService service.DeviceService, posService pos_service.PositionService, wsService providerWS.WebsocketService, lapService lap_service.LapService, db *gorm.DB, port string) {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen on port %s: %v", port, err)
@@ -28,7 +29,7 @@ func StartGRPCServer(devService service.DeviceService, posService pos_service.Po
 
 	// Inicializar Handlers
 	devHandler := grpc_handler.NewDeviceGRPCHandler(devService)
-	positionHandler := pos_handler.NewPositionGRPCHandler(posService, wsService, db)
+	positionHandler := pos_handler.NewPositionGRPCHandler(posService, wsService, lapService, db)
 
 	// Registrar Servicios
 	pbDevice.RegisterDeviceServiceServer(grpcServer, devHandler)

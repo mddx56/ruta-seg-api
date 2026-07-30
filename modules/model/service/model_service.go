@@ -16,6 +16,7 @@ type ModelService interface {
 	ChangeStatus(ctx context.Context, id uuid.UUID) error
 	FindAll(ctx context.Context) ([]dto.ModelResponse, error)
 	FindByID(ctx context.Context, id uuid.UUID) (dto.ModelResponse, error)
+	FindByNameAndMake(ctx context.Context, name string, makeID uuid.UUID) (dto.ModelResponse, error)
 }
 
 type modelService struct {
@@ -98,6 +99,15 @@ func (s *modelService) FindAll(ctx context.Context) ([]dto.ModelResponse, error)
 
 func (s *modelService) FindByID(ctx context.Context, id uuid.UUID) (dto.ModelResponse, error) {
 	model, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return dto.ModelResponse{}, err
+	}
+
+	return s.mapToResponse(model), nil
+}
+
+func (s *modelService) FindByNameAndMake(ctx context.Context, name string, makeID uuid.UUID) (dto.ModelResponse, error) {
+	model, err := s.repo.FindByNameAndMakeID(ctx, name, makeID)
 	if err != nil {
 		return dto.ModelResponse{}, err
 	}

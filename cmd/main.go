@@ -14,6 +14,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 	_ "github.com/Caknoooo/go-gin-clean-starter/database/migrations"
 	"github.com/Caknoooo/go-gin-clean-starter/docs"
 	"github.com/Caknoooo/go-gin-clean-starter/middlewares"
@@ -27,24 +28,31 @@ import (
 	"github.com/Caknoooo/go-gin-clean-starter/modules/dashboard"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/device"
 	deviceinstallation "github.com/Caknoooo/go-gin-clean-starter/modules/device_installation"
+	finemodule "github.com/Caknoooo/go-gin-clean-starter/modules/fine"
+	"github.com/Caknoooo/go-gin-clean-starter/modules/geofence"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/group"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/health"
+	lapmodule "github.com/Caknoooo/go-gin-clean-starter/modules/lap"
 	logsocket "github.com/Caknoooo/go-gin-clean-starter/modules/log_socket"
 	makemodule "github.com/Caknoooo/go-gin-clean-starter/modules/make"
 	modelmodule "github.com/Caknoooo/go-gin-clean-starter/modules/model"
+	notificationmodule "github.com/Caknoooo/go-gin-clean-starter/modules/notification"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/position"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/realtime"
+	routemodule "github.com/Caknoooo/go-gin-clean-starter/modules/route"
+	routefaremodule "github.com/Caknoooo/go-gin-clean-starter/modules/route_fare"
 	"github.com/Caknoooo/go-gin-clean-starter/modules/user"
 	vehiclemodule "github.com/Caknoooo/go-gin-clean-starter/modules/vehicle"
+	vehicleroute "github.com/Caknoooo/go-gin-clean-starter/modules/vehicle_route"
 	vehicletype "github.com/Caknoooo/go-gin-clean-starter/modules/vehicle_type"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
-	"github.com/Caknoooo/go-gin-clean-starter/database/entities"
 	"github.com/Caknoooo/go-gin-clean-starter/providers"
 	redisProvider "github.com/Caknoooo/go-gin-clean-starter/providers/redis"
 	"github.com/Caknoooo/go-gin-clean-starter/script"
 	"gorm.io/gorm"
 
 	devService "github.com/Caknoooo/go-gin-clean-starter/modules/device/service"
+	lapservice "github.com/Caknoooo/go-gin-clean-starter/modules/lap/service"
 	posService "github.com/Caknoooo/go-gin-clean-starter/modules/position/service"
 	"github.com/Caknoooo/go-gin-clean-starter/providers/grpc_server"
 	providerWS "github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
@@ -122,7 +130,7 @@ func main() {
 	server := gin.Default()
 
 	// Middleware de compresión JSON (GZIP) Optimización
-	server.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/realtime/ws"})))
+	server.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{"/api/realtime/ws", "/api/realtime/public/ws"})))
 
 	server.Use(middlewares.CORSMiddleware())
 
@@ -139,6 +147,17 @@ func main() {
 	vehicletype.RegisterRoutes(server, injector)
 	modelmodule.RegisterRoutes(server, injector)
 	vehiclemodule.RegisterRoutes(server, injector)
+	geofence.RegisterRoutes(server, injector)
+	routemodule.RegisterRoutes(server, injector)
+	vehicleroute.RegisterRoutes(server, injector)
+	routefaremodule.RegisterRoutes(server, injector)
+	// notification se registra antes de fine: fine_service resuelve NotificationService
+	// al construirse para avisar al dueño cuando se genera una multa (RF-12).
+	notificationmodule.RegisterRoutes(server, injector)
+	finemodule.RegisterRoutes(server, injector)
+	lapmodule.RegisterRoutes(server, injector)
+	// position se registra después de fine/lap: su controller intenta resolver
+	// LapService al construirse para enganchar el motor de reglas.
 	position.RegisterRoutes(server, injector)
 	deviceinstallation.RegisterRoutes(server, injector)
 	logsocket.RegisterRoutes(server, injector)
@@ -192,6 +211,7 @@ func main() {
 		devSvc := do.MustInvoke[devService.DeviceService](injector)
 		posSvc := do.MustInvoke[posService.PositionService](injector)
 		wsSvc, _ := do.Invoke[providerWS.WebsocketService](injector)
+		lapSvc, _ := do.Invoke[lapservice.LapService](injector)
 
 		portGRPC := os.Getenv("GRPC_PORT")
 		if portGRPC == "" {
@@ -200,7 +220,7 @@ func main() {
 			portGRPC = ":" + portGRPC
 		}
 
-		grpc_server.StartGRPCServer(devSvc, posSvc, wsSvc, db, portGRPC)
+		grpc_server.StartGRPCServer(devSvc, posSvc, wsSvc, lapSvc, db, portGRPC)
 	}()
 
 	run(server)
