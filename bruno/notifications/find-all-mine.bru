@@ -1,0 +1,15 @@
+meta {
+  name: Listar mis notificaciones
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/notifications
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

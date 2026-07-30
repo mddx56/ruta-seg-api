@@ -1,0 +1,21 @@
+meta {
+  name: Actualizar asignación micro-ruta
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/vehicle-routes/VEHICLE_ROUTE_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "pin_number": "7"
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Listar mis multas (rol Dueño)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/fines/mine
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

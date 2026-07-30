@@ -1,0 +1,15 @@
+meta {
+  name: Listar vueltas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/laps
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

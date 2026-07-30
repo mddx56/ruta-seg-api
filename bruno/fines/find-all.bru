@@ -1,0 +1,15 @@
+meta {
+  name: Listar multas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/fines
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

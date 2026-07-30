@@ -1,0 +1,15 @@
+meta {
+  name: Obtener geocerca por ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/geofences/GEOFENCE_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

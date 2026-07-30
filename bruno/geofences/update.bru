@@ -1,0 +1,25 @@
+meta {
+  name: Actualizar geocerca
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/geofences/GEOFENCE_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Checkpoint Línea 18 (actualizado)",
+    "radius": 40,
+    "points": [
+      { "latitude": -17.790538, "longitude": -63.171961, "sequence": 1 }
+    ]
+  }
+}

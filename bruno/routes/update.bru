@@ -1,0 +1,24 @@
+meta {
+  name: Actualizar ruta
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/routes/ROUTE_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Línea 25 - Actualizada",
+    "allowed_lap_duration_seconds": 4200,
+    "max_speed_kmh": 60,
+    "max_stop_duration_seconds": 300
+  }
+}

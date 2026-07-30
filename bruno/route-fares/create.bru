@@ -1,0 +1,22 @@
+meta {
+  name: Crear tarifa de ruta
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/route-fares
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "route_id": "ROUTE_ID_AQUI",
+    "amount_per_lap": 5
+  }
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Listar asignaciones micro-ruta
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/vehicle-routes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Asignar micro a ruta
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/vehicle-routes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "vehicle_id": "VEHICLE_ID_AQUI",
+    "route_id": "ROUTE_ID_AQUI",
+    "pin_number": "4"
+  }
+}

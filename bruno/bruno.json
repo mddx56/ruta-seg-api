@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "name": "Ruta Segura API",
+  "name": "WeatherForecast",
   "type": "collection",
   "ignore": []
 }

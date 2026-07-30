@@ -1,0 +1,15 @@
+meta {
+  name: Marcar notificación como leída
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/notifications/NOTIFICATION_ID_AQUI/read
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Obtener asignación micro-ruta por ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/vehicle-routes/VEHICLE_ROUTE_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

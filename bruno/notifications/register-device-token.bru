@@ -1,0 +1,22 @@
+meta {
+  name: Registrar token de dispositivo (push)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/notifications/device-tokens
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "token": "TOKEN_FCM_DEL_DISPOSITIVO",
+    "platform": "android"
+  }
+}

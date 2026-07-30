@@ -1,0 +1,21 @@
+meta {
+  name: Actualizar tarifa de ruta
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/route-fares/ROUTE_FARE_ID_AQUI
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "amount_per_lap": 6
+  }
+}

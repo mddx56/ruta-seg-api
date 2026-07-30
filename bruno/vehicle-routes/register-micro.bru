@@ -1,0 +1,27 @@
+meta {
+  name: Registrar microbus (todo en uno)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/vehicle-routes/register-micro
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "placa": "1234ABC",
+    "chasis": "CHASIS_EJEMPLO",
+    "user_id": "USER_ID_DUENO_AQUI",
+    "make_id": "MAKE_ID_AQUI",
+    "model_name": "Microbús Línea 18",
+    "route_id": "ROUTE_ID_AQUI",
+    "pin_number": "4"
+  }
+}

@@ -1,0 +1,29 @@
+meta {
+  name: Crear ruta
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/routes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Línea 25 - Ejemplo",
+    "description": "Ruta de ejemplo",
+    "map_color": "#FF0000",
+    "allowed_lap_duration_seconds": 3600,
+    "max_speed_kmh": 60,
+    "max_stop_duration_seconds": 300,
+    "stops": [
+      { "name": "Terminal", "latitude": -17.79, "longitude": -63.17, "sequence": 1 }
+    ]
+  }
+}

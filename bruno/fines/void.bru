@@ -1,0 +1,21 @@
+meta {
+  name: Anular multa
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/fines/FINE_ID_AQUI/void
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "notes": "Anulada tras revisión manual"
+  }
+}

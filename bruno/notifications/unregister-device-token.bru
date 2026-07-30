@@ -1,0 +1,21 @@
+meta {
+  name: Eliminar token de dispositivo (push)
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/notifications/device-tokens
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "token": "TOKEN_FCM_DEL_DISPOSITIVO"
+  }
+}

@@ -1,0 +1,26 @@
+meta {
+  name: Crear geocerca
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/geofences
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Checkpoint Línea 18",
+    "type": "CIRCLE",
+    "radius": 30.5,
+    "points": [
+      { "latitude": -17.790538, "longitude": -63.171961, "sequence": 1 }
+    ]
+  }
+}

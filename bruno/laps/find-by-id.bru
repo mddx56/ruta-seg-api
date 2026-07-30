@@ -1,0 +1,15 @@
+meta {
+  name: Obtener vuelta por ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/laps/LAP_ID_AQUI
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
