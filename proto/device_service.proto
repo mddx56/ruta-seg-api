@@ -13,6 +13,7 @@ message DeviceItem {
     string model = 2;
     string sim_phone_number = 3;
     bool status = 4;
+    string user_id = 5; // UUID del usuario asignado (via instalacion activa), vacio si no tiene
 }
 
 message ListDevicesResponse {

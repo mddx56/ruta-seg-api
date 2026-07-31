@@ -82,7 +82,11 @@ func (r *deviceRepository) ChangeStatus(ctx context.Context, imei string) error 
 
 func (r *deviceRepository) FindAll(ctx context.Context) ([]entities.Device, error) {
 	var devices []entities.Device
-	err := r.db.WithContext(ctx).Where("status = ?", true).Find(&devices).Error
+	err := r.db.WithContext(ctx).
+		Preload("Installations", "removed_at IS NULL").
+		Preload("Installations.Vehicle").
+		Preload("Installations.Vehicle.User").
+		Where("status = ?", true).Find(&devices).Error
 	return devices, err
 }
 

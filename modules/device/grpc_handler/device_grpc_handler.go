@@ -28,11 +28,18 @@ func (h *DeviceGRPCHandler) ListDevicesSimple(ctx context.Context, req *pb.ListD
 		if dev.SimPhoneNumber != nil {
 			simPhone = *dev.SimPhoneNumber
 		}
+
+		userID := ""
+		if dev.ActiveVehicle != nil && dev.ActiveVehicle.User != nil {
+			userID = dev.ActiveVehicle.User.ID.String()
+		}
+
 		pbDevices = append(pbDevices, &pb.DeviceItem{
 			Imei:           dev.IMEI,
 			Model:          dev.Model,
 			SimPhoneNumber: simPhone,
 			Status:         dev.Status,
+			UserId:         userID,
 		})
 	}
 

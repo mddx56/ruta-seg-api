@@ -63,6 +63,7 @@ type DeviceItem struct {
 	Model          string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
 	SimPhoneNumber string                 `protobuf:"bytes,3,opt,name=sim_phone_number,json=simPhoneNumber,proto3" json:"sim_phone_number,omitempty"`
 	Status         bool                   `protobuf:"varint,4,opt,name=status,proto3" json:"status,omitempty"`
+	UserId         string                 `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // UUID del usuario asignado (via instalacion activa), vacio si no tiene
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -123,6 +124,13 @@ func (x *DeviceItem) GetStatus() bool {
 		return x.Status
 	}
 	return false
+}
+
+func (x *DeviceItem) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
 }
 
 type ListDevicesResponse struct {
@@ -350,13 +358,14 @@ var File_proto_device_service_proto protoreflect.FileDescriptor
 const file_proto_device_service_proto_rawDesc = "" +
 	"\n" +
 	"\x1aproto/device_service.proto\x12\rtarget.device\"\x14\n" +
-	"\x12ListDevicesRequest\"x\n" +
+	"\x12ListDevicesRequest\"\x91\x01\n" +
 	"\n" +
 	"DeviceItem\x12\x12\n" +
 	"\x04imei\x18\x01 \x01(\tR\x04imei\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12(\n" +
 	"\x10sim_phone_number\x18\x03 \x01(\tR\x0esimPhoneNumber\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\bR\x06status\"J\n" +
+	"\x06status\x18\x04 \x01(\bR\x06status\x12\x17\n" +
+	"\auser_id\x18\x05 \x01(\tR\x06userId\"J\n" +
 	"\x13ListDevicesResponse\x123\n" +
 	"\adevices\x18\x01 \x03(\v2\x19.target.device.DeviceItemR\adevices\"&\n" +
 	"\x10CheckIMEIRequest\x12\x12\n" +
