@@ -39,12 +39,20 @@ type Client struct {
 	// cliente autenticado ruteado por UserID.
 	Topic string
 
+	// AllowedVehicleIDs filtra qué DEVICE_UPDATED le llegan a un admin; nil significa sin filtro (recibe todos, como hoy).
+	AllowedVehicleIDs map[string]bool
+
 	// Buffered channel of outbound messages.
 	Send chan []byte
 }
 
 // readPump pumps messages from the websocket connection to the hub.
 func (c *Client) ReadPump() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ws: panic recuperado en ReadPump: %v", r)
+		}
+	}()
 	defer func() {
 		c.Hub.Unregister <- c
 		c.Conn.Close()
@@ -67,6 +75,11 @@ func (c *Client) ReadPump() {
 
 // writePump pumps messages from the hub to the websocket connection.
 func (c *Client) WritePump() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("ws: panic recuperado en WritePump: %v", r)
+		}
+	}()
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()

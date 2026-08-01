@@ -29,9 +29,20 @@ func RegisterRoutes(server *gin.Engine, injector *do.Injector) {
 		return positionService.NewPositionService(repo), nil
 	})
 
+	do.Provide(injector, func(i *do.Injector) (positionService.DeviceOwnerResolver, error) {
+		db := do.MustInvokeNamed[*gorm.DB](i, constants.DB)
+		redisService, _ := do.InvokeNamed[redisProvider.RedisService](i, "Redis")
+		var cache redisProvider.DeviceOwnerCache
+		if redisService != nil {
+			cache = redisProvider.NewDeviceOwnerCache(redisService)
+		}
+		return positionService.NewDeviceOwnerResolver(db, cache), nil
+	})
+
 	do.Provide(injector, func(i *do.Injector) (controller.PositionController, error) {
 		svc := do.MustInvoke[positionService.PositionService](i)
-		return controller.NewPositionController(i, svc), nil
+		resolver := do.MustInvoke[positionService.DeviceOwnerResolver](i)
+		return controller.NewPositionController(i, svc, resolver), nil
 	})
 
 	positionController := do.MustInvoke[controller.PositionController](injector)

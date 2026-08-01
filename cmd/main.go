@@ -212,6 +212,7 @@ func main() {
 		posSvc := do.MustInvoke[posService.PositionService](injector)
 		wsSvc, _ := do.Invoke[providerWS.WebsocketService](injector)
 		lapSvc, _ := do.Invoke[lapservice.LapService](injector)
+		ownerResolver := do.MustInvoke[posService.DeviceOwnerResolver](injector)
 
 		portGRPC := os.Getenv("GRPC_PORT")
 		if portGRPC == "" {
@@ -220,7 +221,7 @@ func main() {
 			portGRPC = ":" + portGRPC
 		}
 
-		grpc_server.StartGRPCServer(devSvc, posSvc, wsSvc, lapSvc, db, portGRPC)
+		grpc_server.StartGRPCServer(devSvc, posSvc, wsSvc, lapSvc, ownerResolver, portGRPC)
 	}()
 
 	run(server)

@@ -3,6 +3,7 @@ package controller
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/Caknoooo/go-gin-clean-starter/modules/auth/service"
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/constants"
@@ -72,11 +73,12 @@ func (c *realtimeController) ServeWS(ctx *gin.Context) {
 	role, _ := c.jwtService.GetRoleByToken(tokenString)
 
 	client := &websocket.Client{
-		Hub:    c.wsService.GetHub(),
-		Conn:   conn,
-		UserID: userID,
-		Role:   role,
-		Send:   make(chan []byte, 256),
+		Hub:               c.wsService.GetHub(),
+		Conn:              conn,
+		UserID:            userID,
+		Role:              role,
+		AllowedVehicleIDs: parseVehicleIDsFilter(ctx.Query("vehicle_ids")),
+		Send:              make(chan []byte, 256),
 	}
 
 	client.Hub.Register <- client
@@ -85,6 +87,23 @@ func (c *realtimeController) ServeWS(ctx *gin.Context) {
 	// The hub/pump goroutines own the connection lifetime from here on.
 	go client.WritePump()
 	go client.ReadPump()
+}
+
+// parseVehicleIDsFilter convierte "?vehicle_ids=a,b,c" en un set; vacío devuelve nil (sin filtro).
+func parseVehicleIDsFilter(raw string) map[string]bool {
+	if raw == "" {
+		return nil
+	}
+	ids := make(map[string]bool)
+	for _, id := range strings.Split(raw, ",") {
+		if id = strings.TrimSpace(id); id != "" {
+			ids[id] = true
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	return ids
 }
 
 // ServePublicWS expone un canal de solo lectura, sin autenticación, para clientes

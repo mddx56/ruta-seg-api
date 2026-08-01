@@ -17,7 +17,6 @@ import (
 	"github.com/Caknoooo/go-gin-clean-starter/pkg/utils"
 	providerWS "github.com/Caknoooo/go-gin-clean-starter/providers/websocket"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/samber/do"
 	"gorm.io/gorm"
 )
@@ -39,10 +38,11 @@ type positionController struct {
 	positionService service.PositionService
 	wsService       providerWS.WebsocketService
 	lapService      lapservice.LapService
+	ownerResolver   service.DeviceOwnerResolver
 	db              *gorm.DB
 }
 
-func NewPositionController(injector *do.Injector, ps service.PositionService) PositionController {
+func NewPositionController(injector *do.Injector, ps service.PositionService, resolver service.DeviceOwnerResolver) PositionController {
 	db := do.MustInvokeNamed[*gorm.DB](injector, constants.DB)
 	// WS y Lap son opcionales: si no están registrados todavía, no debe fallar
 	wsSvc, _ := do.Invoke[providerWS.WebsocketService](injector)
@@ -51,6 +51,7 @@ func NewPositionController(injector *do.Injector, ps service.PositionService) Po
 		positionService: ps,
 		wsService:       wsSvc,
 		lapService:      lapSvc,
+		ownerResolver:   resolver,
 		db:              db,
 	}
 }
@@ -80,56 +81,51 @@ func (c *positionController) CreatePosition(ctx *gin.Context) {
 		return
 	}
 
-	// Broadcast to relevant WebSocket clients and admins (non-blocking)
-	if c.wsService != nil {
-		var userIDs []string
-
-		// Obtener directamente solo a los dueños del vehículo donde está el GPS instalado
-		c.db.WithContext(ctx.Request.Context()).
-			Table("device_installations").
-			Select("vehicles.user_id").
-			Joins("JOIN vehicles ON vehicles.id = device_installations.vehicle_id").
-			Where("device_installations.imei = ? AND device_installations.removed_at IS NULL AND device_installations.status = ?", req.Imei, true).
-			Pluck("vehicles.user_id", &userIDs)
-
-		parsedAttrs := extractBroadcastAttributes(req.Attributes)
-		go c.wsService.BroadcastPosition(userIDs, providerWS.DevicePositionData{
-			IMEI:       result.Imei,
-			Latitude:   result.Latitude,
-			Longitude:  result.Longitude,
-			Speed:      result.Speed,
-			Course:     result.Course,
-			DeviceTime: result.DeviceTime,
-			ServerTime: result.ServerTime,
-			Battery:    parsedAttrs.battery,
-			Ignition:   parsedAttrs.ignition,
-			Satellites: parsedAttrs.satellites,
-		})
-	}
-
-	// Motor de vueltas (Fase 2): evalúa si esta posición cierra/abre una vuelta.
-	if c.lapService != nil {
-		var vehicleIDs []uuid.UUID
-		tx := c.db.WithContext(ctx.Request.Context()).
-			Table("device_installations").
-			Select("vehicles.id").
-			Joins("JOIN vehicles ON vehicles.id = device_installations.vehicle_id").
-			Where("device_installations.imei = ? AND device_installations.removed_at IS NULL AND device_installations.status = ?", req.Imei, true).
-			Limit(1).
-			Pluck("vehicles.id", &vehicleIDs)
-
-		if tx.Error == nil && len(vehicleIDs) > 0 {
-			vehicleID := vehicleIDs[0]
-			go func() {
-				if err := c.lapService.EvaluatePosition(context.Background(), vehicleID, result.Latitude, result.Longitude, result.Speed, result.DeviceTime); err != nil {
-					log.Printf("[lap-engine] error evaluando posición del vehículo %s: %v", vehicleID, err)
-				}
-			}()
-		}
-	}
+	c.broadcastAndEvaluate(req, result)
 
 	res := utils.BuildResponseSuccess(dto.MESSAGE_SUCCESS_CREATE_POSITION, result)
 	ctx.JSON(http.StatusCreated, res)
+}
+
+// broadcastAndEvaluate resuelve el dueño (con caché) y notifica en background, sin demorar la respuesta al GPS.
+func (c *positionController) broadcastAndEvaluate(req dto.PositionCreateRequest, result dto.PositionResponse) {
+	if c.wsService == nil && c.lapService == nil {
+		return
+	}
+
+	go func() {
+		ctx := context.Background()
+		owner, found := c.ownerResolver.Resolve(ctx, req.Imei)
+
+		if c.wsService != nil {
+			var userIDs []string
+			var vehicleID string
+			if found {
+				userIDs = []string{owner.UserID}
+				vehicleID = owner.VehicleID.String()
+			}
+			parsedAttrs := extractBroadcastAttributes(req.Attributes)
+			c.wsService.BroadcastPosition(userIDs, providerWS.DevicePositionData{
+				IMEI:       result.Imei,
+				VehicleID:  vehicleID,
+				Latitude:   result.Latitude,
+				Longitude:  result.Longitude,
+				Speed:      result.Speed,
+				Course:     result.Course,
+				DeviceTime: result.DeviceTime,
+				ServerTime: result.ServerTime,
+				Battery:    parsedAttrs.battery,
+				Ignition:   parsedAttrs.ignition,
+				Satellites: parsedAttrs.satellites,
+			})
+		}
+
+		if found && c.lapService != nil {
+			if err := c.lapService.EvaluatePosition(ctx, owner.VehicleID, result.Latitude, result.Longitude, result.Speed, result.DeviceTime); err != nil {
+				log.Printf("[lap-engine] error evaluando posición del vehículo %s: %v", owner.VehicleID, err)
+			}
+		}
+	}()
 }
 
 type broadcastAttrs struct {

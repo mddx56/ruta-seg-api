@@ -1,5 +1,10 @@
 package websocket
 
+import (
+	"sync"
+	"time"
+)
+
 type WebsocketService interface {
 	RunHub()
 	GetHub() *Hub
@@ -15,11 +20,15 @@ type WebsocketService interface {
 
 type websocketService struct {
 	hub *Hub
+
+	broadcastMu       sync.Mutex
+	lastBroadcastByID map[string]time.Time // acotado por cantidad de IMEIs de la flota, no por conexiones
 }
 
 func NewWebsocketService(hub *Hub) WebsocketService {
 	return &websocketService{
-		hub: hub,
+		hub:               hub,
+		lastBroadcastByID: make(map[string]time.Time),
 	}
 }
 
